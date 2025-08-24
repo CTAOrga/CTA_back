@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup (crear venv e instalar deps)",
+      "type": "shell",
+      "command": "powershell",
+      "args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/setup-cta_back.ps1"]
+    },
+    {
+      "label": "Run API (uvicorn)",
+      "type": "shell",
+      "command": "powershell",
+      "args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/run-dev.ps1"],
+      "problemMatcher": []
+    }
+  ]
+}
