@@ -1,7 +1,7 @@
 # cta_back — Base FastAPI (sin Docker)
 
 Backend base con **FastAPI**, CORS listo para React y configuración por `.env`.
-No se fuerza la conexión a MySQL (podés arrancar sin DB y sumarla después).
+No se fuerza la conexión a la base (podés arrancar sin DB y sumarla después). Ya incluye ejemplo con **MySQL**.
 
 ---
 
@@ -9,8 +9,8 @@ No se fuerza la conexión a MySQL (podés arrancar sin DB y sumarla después).
 
 - **Python 3.11+**
 - **VS Code** (recomendado)
-- (Opcional) **MySQL nativo** si vas a conectar la DB
-- (Windows) PowerShell habilitado para scripts (ver “Problemas comunes”)
+- **MySQL Server 8.x** (o 5.7)
+- (Windows) PowerShell habilitado para scripts
 
 ## Extensiones VS Code
 
@@ -19,7 +19,7 @@ No se fuerza la conexión a MySQL (podés arrancar sin DB y sumarla después).
 
 ---
 
-## Pasos para correr el proyecto (Windows y Linux en un mismo flujo)
+## Pasos para correr el proyecto (Windows y Linux)
 
 1. **Abrir en VS Code**
 
@@ -55,7 +55,19 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-5. **Levantar la API (modo desarrollo)**
+5. **Configurar conexión a MySQL en `.env`**
+
+```
+DATABASE_URL=mysql+pymysql://appuser:AppPass!123@localhost:3306/appdb
+APP_NAME=CTA Backend
+APP_VERSION=0.1.0
+APP_ENV=development
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000
+```
+
+> Nota: usamos **localhost** porque el usuario es `'appuser'@'localhost'`.
+
+6. **Levantar la API (modo desarrollo)**
 
 ```bash
 uvicorn app.main:app --reload
@@ -64,15 +76,14 @@ uvicorn app.main:app --reload
 # uvicorn app.main:app --reload --port 8010
 ```
 
-6. **(Opcional) Ejecutar con F5 en VS Code**
-   - Ya viene `.vscode/launch.json` (debug listo).
-   - Si VS Code no usa tu venv: `Ctrl+Shift+P` → _Python: Select Interpreter_ → `.venv`.
+7. **Probar el ejemplo**
+
+- **POST** `/api/v1/items/` → body: `{ "name": "Primer item" }`
+- **GET** `/api/v1/items/` → devuelve la lista de items
 
 ---
 
-## Scripts “1‑click” (Windows)
-
-Si preferís automatizar el setup y el arranque:
+## Scripts “1-click” (Windows)
 
 ```powershell
 # En la carpeta del proyecto
@@ -84,19 +95,29 @@ powershell -ExecutionPolicy Bypass -File .\run-dev.ps1          # levanta la API
 
 ---
 
-## Variables de entorno
+## Primera vez: crear base y usuario en MySQL
 
-Editá `.env` (creado desde `.env.example`) si necesitás cambiar algo:
+**Windows (PowerShell):**
 
+```powershell
+$SQL = @'
+CREATE DATABASE IF NOT EXISTS appdb
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_0900_ai_ci;
+CREATE USER IF NOT EXISTS 'appuser'@'localhost' IDENTIFIED BY 'AppPass!123';
+GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'localhost';
+FLUSH PRIVILEGES;
+'@
+mysql -u root -p -e $SQL
 ```
-DATABASE_URL=mysql+pymysql://appuser:apppass@127.0.0.1:3306/appdb
-APP_NAME=CTA Backend
-APP_VERSION=0.1.0
-APP_ENV=development
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000
+
+**Linux:**
+
+```bash
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS appdb DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_0900_ai_ci; CREATE USER IF NOT EXISTS 'appuser'@'localhost' IDENTIFIED BY 'AppPass!123'; GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'localhost'; FLUSH PRIVILEGES;"
 ```
 
-> Ajustá `CORS_ORIGINS` según el host/puerto del front en React.
+> Si tu server es 5.7, usá `utf8mb4_unicode_ci`.
 
 ---
 
@@ -108,13 +129,17 @@ app/
     v1/
       endpoints/
         ping.py
+        items.py          # ← CRUD mínimo de ejemplo
       router.py
   core/
     config.py
   db/
     base.py
-    session.py    # engine lazy (no conecta a DB hasta que lo uses)
-  main.py
+    session.py            # engine lazy (no conecta hasta usarse)
+  models/
+    __init__.py
+    item.py               # ← modelo de ejemplo
+  main.py                 # lifespan: crea tablas al iniciar
 .vscode/
   launch.json
   settings.json
@@ -123,50 +148,51 @@ requirements.txt
 .env.example
 ```
 
+> El arranque usa **lifespan** (no `@on_event`), y crea tablas con `Base.metadata.create_all(...)`.
+
 ---
 
-## Conectar MySQL (cuando lo pida el TP)
+## Troubleshooting
 
-1. Crear base y usuario en tu MySQL nativo:
+**`ERROR 1045 (Access denied)`**
 
-```sql
-CREATE DATABASE appdb DEFAULT CHARACTER SET utf8mb4;
-CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'apppass';
-GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'localhost';
-FLUSH PRIVILEGES;
-```
+- Usá host correcto: si el usuario es `'appuser'@'localhost'`, tu URL debe usar **localhost** (no `127.0.0.1`).
+- Reset de clave (como root):
+  ```sql
+  ALTER USER 'appuser'@'localhost' IDENTIFIED BY 'AppPass!123';
+  FLUSH PRIVILEGES;
+  ```
 
-2. Ajustar `DATABASE_URL` en `.env` (usar `127.0.0.1` para TCP).
-3. Usar `app/db/session.py` en endpoints/servicios y definir modelos SQLAlchemy.
+**`mysql` no se reconoce (Windows)**
 
-_(Opcional)_ Paquetes útiles para auth/validación (instalalos en tu venv):
+- Agregá al PATH (ajustá la ruta si difiere):
+  ```powershell
+  $mysqlBin = "C:\Program Files\MySQL\MySQL Server 8.0\bin"
+  $cur = [Environment]::GetEnvironmentVariable("Path","User")
+  if (-not $cur) { $cur = "" }
+  if ($cur -notlike "*$mysqlBin*") {
+    [Environment]::SetEnvironmentVariable("Path", ($cur.TrimEnd(';') + ";" + $mysqlBin), "User")
+  }
+  ```
+  Cerrá y reabrí la terminal. `mysql --version` debería responder.
+
+**CORS**
+
+- Si el front corre en otro puerto/host, agregalo en `CORS_ORIGINS` y reiniciá el server.
+
+**Puerto 8000 ocupado**
 
 ```bash
-pip install email-validator passlib[bcrypt] python-jose[cryptography]
+uvicorn app.main:app --reload --port 8010
 ```
 
----
+**VS Code no toma el venv**
 
-## Problemas comunes
-
-- **Windows “running scripts is disabled”**  
-  Ejecutar una vez:
-  ```powershell
-  Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force
-  ```
-- **VS Code no toma el venv**  
-  `Ctrl+Shift+P` → _Python: Select Interpreter_ → `.venv`.  
-  Podés fijarlo en `.vscode/settings.json`:
-  ```json
-  "python.defaultInterpreterPath": ".venv\Scripts\python.exe",
-  "python.terminal.activateEnvironment": true
-  ```
-- **Puerto ocupado**  
-  `uvicorn app.main:app --reload --port 8010`
-- **No encuentra paquetes**  
-  Activar el venv antes de instalar/correr:
-  - Windows: `.\.venv\Scripts\Activate.ps1`
-  - Linux: `source .venv/bin/activate`
+```json
+// .vscode/settings.json
+"python.defaultInterpreterPath": ".venv\Scripts\python.exe",
+"python.terminal.activateEnvironment": true
+```
 
 ---
 
