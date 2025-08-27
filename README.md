@@ -1,5 +1,10 @@
 # cta_back — Base FastAPI (sin Docker)
 
+<p align="center">
+  <img src="assets/logo.png" alt="CTA – Compra Tu Auto" width="180" />
+</p>
+<h1 align="center">CTA – Compra Tu Auto</h1>
+
 Backend base con **FastAPI**, CORS listo para React y configuración por `.env`.
 No se fuerza la conexión a la base (podés arrancar sin DB y sumarla después). Ya incluye ejemplo con **MySQL**.
 
