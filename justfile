@@ -10,9 +10,7 @@ down:
     {{COMPOSE_COMMAND}} down
 
 # Ejecuta un comando dentro de un servicio (por defecto, una terminal bash en el servicio 'app')
-exec service='app' command='bash':
+exec service='backend' command='bash':
     {{COMPOSE_COMMAND}} exec {{service}} {{command}}
 
-recipe-name:
-  echo 'This is a recipe!'
 
