@@ -1,0 +1,57 @@
+/* importa el css original de swagger-ui */
+@import url("https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css");
+
+/* overrides oscuros mínimos */
+:root {
+  --bg: #0d1117;
+  --panel: #111827;
+  --panel2: #0f172a;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --primary: #58a6ff;
+}
+
+html,
+body,
+.swagger-ui,
+.swagger-ui .wrapper {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+.swagger-ui .topbar,
+.swagger-ui .scheme-container {
+  background: #161b22 !important;
+  border: none !important;
+}
+
+.swagger-ui .opblock,
+.swagger-ui .model-box,
+.swagger-ui .responses-inner {
+  background: var(--panel2) !important;
+  border-color: #1f2937 !important;
+  color: var(--text) !important;
+}
+
+.swagger-ui .opblock-summary,
+.swagger-ui .opblock-tag {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+}
+
+.swagger-ui .model-title,
+.swagger-ui .tab li,
+.swagger-ui .parameter__name,
+.swagger-ui .response-col_status {
+  color: var(--text) !important;
+}
+
+.swagger-ui .info .title,
+.swagger-ui .opblock .opblock-summary-method {
+  color: var(--text) !important;
+  background: #2563eb !important;
+}
+.swagger-ui a,
+.swagger-ui .opblock-control-arrow {
+  color: var(--primary) !important;
+}

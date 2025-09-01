@@ -8,7 +8,9 @@ from app.api.v1.router import api_router
 # NUEVO: crear tablas
 from app.db.base import Base
 from app.db.session import get_engine
-import app.models.item  # importa modelos para create_all
+import app.models.item
+import app.models.agency  # ← nuevo
+import app.models.user  # ← nuevo
 
 
 @asynccontextmanager
