@@ -126,32 +126,76 @@ mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS appdb DEFAULT CHARACTER SET u
 
 ---
 
+## 🔐 Autenticación (JWT) y Roles
+
+> Cambiar `SECRET_KEY` invalida todos los tokens existentes (los usuarios deben loguearse de nuevo).
+
+El backend usa **JWT (HS256)**. La clave `SECRET_KEY` firma/verifica los tokens y **no debe publicarse**.
+
+### 1) Variables de entorno
+
+Agregá en tu `.env` (no versionar):
+
+--- auth/jwt ---
+
+SECRET_KEY=<GENERAR_CON_EL_COMANDO_DE_ABAJO>
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+TOKEN_ALGORITHM=HS256
+
+### 2) Generar una SECRET_KEY fuerte
+
+- **Windows (PowerShell):**
+  ```powershell
+  python -c "import secrets; print(secrets.token_urlsafe(64))"
+  ```
+
+-**Linux/macOS:**
+
+`````python3 - <<'PY'
+  import secrets; print(secrets.token_urlsafe(64))
+PY```
+# (alternativa) openssl rand -base64 48
+
+
+
+### 1) Semilla del usuario Admin (solo una vez). El usuario Admin se agregar por db ###
+  1) Generar hash:
+  ````python -c "from passlib.hash import bcrypt; print(bcrypt.hash('Admin123!'))"```
+###  2) Insertar en MySQL: ###
+```` USE appdb;
+INSERT INTO users (email, password_hash, role, is_active)
+VALUES ('admin@example.com', '<PEGA_HASH_AQUI>', 'admin', 1);
+```
+
+
 ## Estructura del proyecto
 
-```
+`````
+
 app/
-  api/
-    v1/
-      endpoints/
-        ping.py
-        items.py          # ← CRUD mínimo de ejemplo
-      router.py
-  core/
-    config.py
-  db/
-    base.py
-    session.py            # engine lazy (no conecta hasta usarse)
-  models/
-    __init__.py
-    item.py               # ← modelo de ejemplo
-  main.py                 # lifespan: crea tablas al iniciar
+api/
+v1/
+endpoints/
+ping.py
+items.py # ← CRUD mínimo de ejemplo
+router.py
+core/
+config.py
+db/
+base.py
+session.py # engine lazy (no conecta hasta usarse)
+models/
+**init**.py
+item.py # ← modelo de ejemplo
+main.py # lifespan: crea tablas al iniciar
 .vscode/
-  launch.json
-  settings.json
-  tasks.json
+launch.json
+settings.json
+tasks.json
 requirements.txt
 .env.example
-```
+
+````
 
 > El arranque usa **lifespan** (no `@on_event`), y crea tablas con `Base.metadata.create_all(...)`.
 
@@ -166,7 +210,7 @@ requirements.txt
   ```sql
   ALTER USER 'appuser'@'localhost' IDENTIFIED BY 'AppPass!123';
   FLUSH PRIVILEGES;
-  ```
+````
 
 **`mysql` no se reconoce (Windows)**
 
