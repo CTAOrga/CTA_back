@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     func,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
@@ -33,7 +34,15 @@ class User(Base):
         ForeignKey("agencies.id"), nullable=True
     )
     created_at: Mapped["DateTime"] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    )
+    updated_at: Mapped["DateTime"] = mapped_column(
+        DateTime(timezone=True),
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=text("CURRENT_TIMESTAMP"),
+        nullable=False,
     )
 
     agency = relationship("Agency", lazy="joined")
