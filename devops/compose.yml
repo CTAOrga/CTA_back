@@ -3,15 +3,16 @@ services:
     build:
       context: ../
       dockerfile: devops/Dockerfile
+    container_name: cta_backend
     ports:
-      - "8010:8010"
+      - "8000:8000"
     env_file:
       - ../.env
     networks:
       - cta_back_network
     depends_on:
       - mysql
-     
+
   mysql:
     image: mysql:8.0.19
     container_name: mysql-container

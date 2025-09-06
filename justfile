@@ -9,6 +9,10 @@ up:
 down:
     {{COMPOSE_COMMAND}} down
 
+# Buildea la imagen 
+build:
+    {{COMPOSE_COMMAND}} build
+
 # Ejecuta un comando dentro de un servicio (por defecto, una terminal bash en el servicio 'app')
 exec service='backend' command='bash':
     {{COMPOSE_COMMAND}} exec {{service}} {{command}}

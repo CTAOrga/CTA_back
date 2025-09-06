@@ -11,5 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar el resto del código incluyendo .env
 COPY . .
 
+## Exponer el puerto
+EXPOSE 8000
+
 # Comando para ejecutar FastAPI con Gunicorn
-CMD ["uvicorn", "app.main:app", "--reload", "--port", "8010"]
+CMD ["uvicorn", "app.main:app", "--reload"]
