@@ -246,6 +246,14 @@ Para ver una lista de todas las recetas disponibles y sus descripciones directam
 ```bash
 just --list
 ```
+### Ejecucion para todos los servicios
+
+1) Para poder ejecutar se debe renombrar el `/devops/env.compose.example` por `/devops/.env.compose`
+
+2) Ademas se debe ejecutar en el proyecto `CTA_Front` el comando de just: `just build_dev` y debe tener creado una imagen de nombre `cta_front_dev`
+
+3) Ejecutar `just up` en el repositorio.
+
 ## Estructura del proyecto
 
 ```

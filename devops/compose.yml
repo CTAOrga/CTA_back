@@ -7,13 +7,24 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ../.env.docker
+      - ./.env.compose
     networks:
       - cta_back_network
     depends_on:
       - mysql
     restart: unless-stopped # ← si falla al arrancar, reintenta
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    image: cta_front_dev:latest
+    container_name: cta_frontend
+    ports:
+      - "80:80"      # Puerto 80 para producción
+    networks:
+      - cta_back_network
+    depends_on:
+      - backend
+    restart: unless-stopped
 
   mysql:
     image: mysql:8.0.19
