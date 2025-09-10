@@ -11,13 +11,19 @@ from app.db.session import get_engine
 import app.models.item
 import app.models.agency  # ← nuevo
 import app.models.user  # ← nuevo
+from sqlalchemy.exc import SQLAlchemyError
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # STARTUP
     engine = get_engine()
-    Base.metadata.create_all(bind=engine)  # crea tablas si no existen
+    try:
+        Base.metadata.create_all(bind=engine)  # crea tablas si no existen
+    except SQLAlchemyError as e:
+        # Loguea y repropaga para que el contenedor reinicie si corresponde
+        print(f"[DB] Error creando tablas: {e}")
+        raise
     try:
         yield
     finally:

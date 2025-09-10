@@ -19,7 +19,7 @@ services:
     image: cta_front_dev:latest
     container_name: cta_frontend
     ports:
-      - "80:80"      # Puerto 80 para producción
+      - "8080:80" # Puerto 80 para producción
     networks:
       - cta_back_network
     depends_on:
