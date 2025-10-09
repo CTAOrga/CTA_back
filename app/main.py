@@ -19,7 +19,8 @@ async def lifespan(app: FastAPI):
     # STARTUP
     engine = get_engine()
     try:
-        Base.metadata.create_all(bind=engine)  # crea tablas si no existen
+        if settings.APP_ENV != "test":
+            Base.metadata.create_all(bind=engine)  # crea tablas si no existen
     except SQLAlchemyError as e:
         # Loguea y repropaga para que el contenedor reinicie si corresponde
         print(f"[DB] Error creando tablas: {e}")
