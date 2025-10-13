@@ -4,7 +4,7 @@ name: SonarCube Analisis
 on:
   push:
     branches:
-      ["main", "action-sonarcube"]
+      ["main"]
   pull_request:
     types: [opened, synchronize, reopened]
 
