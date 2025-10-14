@@ -27,6 +27,11 @@ jobs:
         #Muestra advertencias de estilo, pero no detiene el workflow
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
 
+      - name: Lint with Flake8 Annotations
+        uses: reviewdog/action-flake8@v3
+        with:
+            reporter: github-pr-review
+
       - name: Format with Black
         run: 
           black .
