@@ -1,4 +1,4 @@
-# cta_back — Base FastAPI 
+# cta_back — Base FastAPI
 
 <p align="center">
   <img src="assets/logo.png" alt="CTA – Compra Tu Auto" width="180" />
@@ -9,6 +9,7 @@ Backend base con **FastAPI**, CORS listo para React y configuración por `.env`.
 No se fuerza la conexión a la base (podés arrancar sin DB y sumarla después). Ya incluye ejemplo con **MySQL**.
 
 ---
+
 ## FastAPi sin docker
 
 ### Requisitos
@@ -89,6 +90,58 @@ uvicorn app.main:app --reload
 
 ---
 
+### 🧪 Cómo correr los tests (Windows y Linux)
+
+1. **Instalar dependencias para test desde la raíz del proyecto**
+
+```bash
+pip install -r requirements-test.txt
+```
+
+2. **Activar el entorno virtual (si ya no estaba activo)**
+
+```bash
+# Windows (PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# Linux
+source .venv/bin/activate
+```
+
+3. **Comandos de test útiles**
+
+```bash
+# (corre todos)
+pytest
+# (mas verboso)
+pytest -vv
+# (silencioso)
+pytest -q
+# (un solo archivo)
+pytest tests/test_favorites_service.py
+# (solo el directorio bdd, verboso)
+pytest -vv -k bdd
+# (todo lo que hay en bdd)
+pytest -q tests/bdd
+# (todo lo que haya en el dir tests)
+pytest -q tests
+# (mas verboso)
+pytest -vv -k tests
+# (filtro por escenario)
+pytest -vv -k "Password válido"
+# (re-ejecutar solo los últimos fallos)
+python -m pytest --lf
+# (cortar al primer fallo)
+python -m pytest -x
+# (mostrar prints/logs en consola)
+python -m pytest -vv -s
+```
+
+> Nota_1: los tests configuran el entorno a APP_ENV=test desde tests/conftest.py, por lo que no tenés que setear variables manualmente.
+> Nota_2: Asegurate de correr los tests con el venv activo; en Windows es recomendable usar python -m pytest para evitar problemas de PATH.
+
+---
+
 ### Scripts “1-click” (Windows)
 
 ```powershell
@@ -155,20 +208,18 @@ TOKEN_ALGORITHM=HS256
 ```python3 -
   import secrets; print(secrets.token_urlsafe(64))
 ```
+
 ### (alternativa) openssl rand -base64 48
 
-
-
 Semilla del usuario Admin (solo una vez). El usuario Admin se agregar por db.
- 
 
-####  1) Generar hash:
-  
+#### 1) Generar hash:
+
 ```
   python -c "from passlib.hash import bcrypt; print(bcrypt.hash('Admin123!'))"
 ```
 
-####  2) Insertar en MySQL:
+#### 2) Insertar en MySQL:
 
 ```
 USE appdb;
@@ -184,8 +235,8 @@ Este proyecto utiliza **`just`** como un ejecutor de comandos para simplificar l
 
 Asegúrate de tener instaladas las siguientes herramientas en tu sistema:
 
-  * **Docker y Docker Compose:** [Guía de instalación de Docker](https://docs.docker.com/engine/install/)
-  * **Just:** [Instrucciones de instalación de Just](https://www.google.com/search?q=https://github.com/casey/just%23installation)
+- **Docker y Docker Compose:** [Guía de instalación de Docker](https://docs.docker.com/engine/install/)
+- **Just:** [Instrucciones de instalación de Just](https://www.google.com/search?q=https://github.com/casey/just%23installation)
 
 ### Comandos Principales
 
@@ -193,51 +244,51 @@ Asegúrate de tener instaladas las siguientes herramientas en tu sistema:
 
 Para levantar todos los servicios definidos en `./devops/compose.yml` en segundo plano (modo detached).
 
-  * **Comando:**
-    ```bash
-    just up
-    ```
-  * **Equivale a:** `docker-compose -f ./devops/compose.yml up -d`
+- **Comando:**
+  ```bash
+  just up
+  ```
+- **Equivale a:** `docker-compose -f ./devops/compose.yml up -d`
 
------
+---
 
 #### Detener el entorno
 
 Para detener y eliminar los contenedores, redes y volúmenes creados por `up`.
 
-  * **Comando:**
-    ```bash
-    just down
-    ```
-  * **Equivale a:** `docker-compose -f ./devops/compose.yml down`
+- **Comando:**
+  ```bash
+  just down
+  ```
+- **Equivale a:** `docker-compose -f ./devops/compose.yml down`
 
------
+---
 
 #### Ejecutar un comando en un servicio
 
 Para ejecutar un comando dentro de un contenedor específico que ya está en funcionamiento.
 
-  * **Comando:**
-    ```bash
-    just exec [service] [command]
-    ```
-  * **Acción:** Si no se especifican parámetros, la receta por defecto abre una shell (`bash`) en el servicio `app`.
-  * **Equivale a:** `docker-compose -f ./devops/compose.yml exec <service> <command>`
+- **Comando:**
+  ```bash
+  just exec [service] [command]
+  ```
+- **Acción:** Si no se especifican parámetros, la receta por defecto abre una shell (`bash`) en el servicio `app`.
+- **Equivale a:** `docker-compose -f ./devops/compose.yml exec <service> <command>`
 
 **Ejemplos de uso:**
 
-  * **Abrir una terminal en el contenedor por defecto (`app`):**
-    ```bash
-    just exec
-    ```
-  * **Abrir una terminal `sh` en el servicio de la base de datos:**
-    ```bash
-    just exec service='database' command='sh'
-    ```
-  * **Ejecutar la instalación de dependencias en el servicio `api`:**
-    ```bash
-    just exec service='api' command='npm install'
-    ```
+- **Abrir una terminal en el contenedor por defecto (`app`):**
+  ```bash
+  just exec
+  ```
+- **Abrir una terminal `sh` en el servicio de la base de datos:**
+  ```bash
+  just exec service='database' command='sh'
+  ```
+- **Ejecutar la instalación de dependencias en el servicio `api`:**
+  ```bash
+  just exec service='api' command='npm install'
+  ```
 
 ### Listar todos los comandos
 
@@ -246,13 +297,14 @@ Para ver una lista de todas las recetas disponibles y sus descripciones directam
 ```bash
 just --list
 ```
+
 ### Ejecucion para todos los servicios
 
-1) Para poder ejecutar se debe renombrar el `/devops/env.compose.example` por `/devops/.env.compose`
+1. Para poder ejecutar se debe renombrar el `/devops/env.compose.example` por `/devops/.env.compose`
 
-2) Ademas se debe ejecutar en el proyecto `CTA_Front` el comando de just: `just build_dev` y debe tener creado una imagen de nombre `cta_front_dev`
+2. Ademas se debe ejecutar en el proyecto `CTA_Front` el comando de just: `just build_dev` y debe tener creado una imagen de nombre `cta_front_dev`
 
-3) Ejecutar `just up` en el repositorio.
+3. Ejecutar `just up` en el repositorio.
 
 ## Estructura del proyecto
 
@@ -293,6 +345,7 @@ requirements.txt
 
 - Usá host correcto: si el usuario es `'appuser'@'localhost'`, tu URL debe usar **localhost** (no `127.0.0.1`).
 - Reset de clave (como root):
+
 ```sql
   ALTER USER 'appuser'@'localhost' IDENTIFIED BY 'AppPass!123';
   FLUSH PRIVILEGES;
@@ -301,6 +354,7 @@ requirements.txt
 **`mysql` no se reconoce (Windows)**
 
 - Agregá al PATH (ajustá la ruta si difiere):
+
 ```powershell
   $mysqlBin = "C:\Program Files\MySQL\MySQL Server 8.0\bin"
   $cur = [Environment]::GetEnvironmentVariable("Path","User")
@@ -309,7 +363,8 @@ requirements.txt
     [Environment]::SetEnvironmentVariable("Path", ($cur.TrimEnd(';') + ";" + $mysqlBin), "User")
   }
 ```
-  Cerrá y reabrí la terminal. `mysql --version` debería responder.
+
+Cerrá y reabrí la terminal. `mysql --version` debería responder.
 
 **CORS**
 
