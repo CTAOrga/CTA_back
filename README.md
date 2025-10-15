@@ -8,6 +8,7 @@
 Backend base con **FastAPI**, CORS listo para React y configuración por `.env`.
 No se fuerza la conexión a la base (podés arrancar sin DB y sumarla después). Ya incluye ejemplo con **MySQL**.
 
+[![codecov](https://codecov.io/gh/CTAOrga/CTA_back/graph/badge.svg?token=49BT5FMQ9B)](https://codecov.io/gh/CTAOrga/CTA_back)
 ---
 
 ## FastAPi sin docker
@@ -141,7 +142,6 @@ python -m pytest -vv -s
 >
 > Nota_2: Asegurate de correr los tests con el venv activo; en Windows es recomendable usar `python -m pytest` para evitar problemas de PATH.
 
-[![codecov](https://codecov.io/gh/CTAOrga/CTA_back/branch/action-codecov/graph/badge.svg?token=49BT5FMQ9B)](https://codecov.io/gh/CTAOrga/CTA_back)
 ---
 
 ### Scripts “1-click” (Windows)
