@@ -141,6 +141,7 @@ python -m pytest -vv -s
 >
 > Nota_2: Asegurate de correr los tests con el venv activo; en Windows es recomendable usar `python -m pytest` para evitar problemas de PATH.
 
+[![codecov](https://codecov.io/gh/CTAOrga/CTA_back/branch/action-codecov/graph/badge.svg?token=49BT5FMQ9B)](https://codecov.io/gh/CTAOrga/CTA_back)
 ---
 
 ### Scripts “1-click” (Windows)
