@@ -93,6 +93,20 @@ def buyer_user(db: Session) -> User:
 
 
 @pytest.fixture()
+def anotherbuyer_user(db: Session) -> User:
+    u = User(
+        email="anotherbuyer@example.com",
+        password_hash=hash_password("secret_anotherbuyer"),
+        role=UserRole.buyer,
+        is_active=True,
+    )
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    return u
+
+
+@pytest.fixture()
 def agency(db: Session) -> Agency:
     a = Agency(name="CompraCar")
     db.add(a)
