@@ -20,7 +20,7 @@ def buyer_token(client: TestClient, anotherbuyer: User) -> str:
     # En conftest, buyer_user se crea con password "secret"
     resp = client.post(
         "/api/v1/auth/login",
-        json={"email": anotherbuyer.email, "password": "secret_anotherbuyer"},
+        json={"email": notherbuyer.email, "password": "secret_anotherbuyer"},
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()
