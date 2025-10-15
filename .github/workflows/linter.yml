@@ -1,0 +1,44 @@
+name: Python Lint and Format
+
+on: [push, pull_request]
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+            ref: ${{ github.head_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: 
+          pip install flake8 black
+
+      - name: Lint with Flake8
+        run: 
+        #Muestra advertencias de estilo, pero no detiene el workflow
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+
+      - name: Lint with Flake8 Annotations
+        uses: reviewdog/action-flake8@v3
+        with:
+            reporter: github-pr-review
+
+      - name: Format with Black
+        run: 
+          black .
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "style: Formateo automático con Black"
+          branch: ${{ github.head_ref }}
