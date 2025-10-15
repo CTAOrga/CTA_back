@@ -91,6 +91,7 @@ def buyer_user(db: Session) -> User:
     db.refresh(u)
     return u
 
+
 @pytest.fixture()
 def anotherbuyer_user(db: Session) -> User:
     u = User(
@@ -103,6 +104,7 @@ def anotherbuyer_user(db: Session) -> User:
     db.commit()
     db.refresh(u)
     return u
+
 
 @pytest.fixture()
 def agency(db: Session) -> Agency:

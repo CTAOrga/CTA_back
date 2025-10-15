@@ -8,10 +8,12 @@ def ensure_buyer(buyer_user: User) -> User:
     # Reusa la fixture buyer_user definida en tests/conftest.py
     return buyer_user
 
+
 @given("existe un usuario buyer en la base", target_fixture="ensure_buyer")
 def ensure_anotherbuyer(anotherbuyer: User) -> User:
     # Reusa la fixture anotherbuyer definida en tests/conftest.py
     return anotherbuyer
+
 
 @given("existe un usuario buyer logueado", target_fixture="anotherbuyer_token")
 def buyer_token(client: TestClient, anotherbuyer_user: User) -> str:
@@ -24,6 +26,7 @@ def buyer_token(client: TestClient, anotherbuyer_user: User) -> str:
     data = resp.json()
     assert "access_token" in data, data
     return data["access_token"]
+
 
 @given("existe un usuario anotherbuyer logueado", target_fixture="anotherbuyer_token")
 def anotherbuyer_token(client: TestClient, buyer_user: User) -> str:
