@@ -138,7 +138,8 @@ python -m pytest -vv -s
 ```
 
 > Nota_1: los tests configuran el entorno a APP_ENV=test desde tests/conftest.py, por lo que no tenés que setear variables manualmente.
-> Nota_2: Asegurate de correr los tests con el venv activo; en Windows es recomendable usar python -m pytest para evitar problemas de PATH.
+>
+> Nota_2: Asegurate de correr los tests con el venv activo; en Windows es recomendable usar `python -m pytest` para evitar problemas de PATH.
 
 ---
 
