@@ -16,11 +16,11 @@ def ensure_anotherbuyer(anotherbuyer: User) -> User:
 
 
 @given("existe un usuario buyer logueado", target_fixture="anotherbuyer_token")
-def buyer_token(client: TestClient, anotherbuyer_user: User) -> str:
+def buyer_token(client: TestClient, anotherbuyer: User) -> str:
     # En conftest, buyer_user se crea con password "secret"
     resp = client.post(
         "/api/v1/auth/login",
-        json={"email": anotherbuyer_user.email, "password": "secret_anotherbuyer"},
+        json={"email": anotherbuyer.email, "password": "secret_anotherbuyer"},
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()
@@ -28,7 +28,7 @@ def buyer_token(client: TestClient, anotherbuyer_user: User) -> str:
     return data["access_token"]
 
 
-@given("existe un usuario abuyer logueado", target_fixture="anotherbuyer_token")
+@given("existe un usuario abuyer login", target_fixture="anotherbuyer_token")
 def anotherbuyer_token(client: TestClient, buyer_user: User) -> str:
     # En conftest, buyer_user se crea con password "secret"
     resp = client.post(
