@@ -8,6 +8,7 @@ from app.models.favorite import Favorite
 import time
 
 
+# Simula el click en favoritos para una oferta
 def test_toggle_favorite(db, buyer_user, sample_listing):
     state = toggle_favorite(db, buyer_user.id, sample_listing.id)
     assert state is True
@@ -18,12 +19,14 @@ def test_toggle_favorite(db, buyer_user, sample_listing):
     assert db.query(Favorite).count() == 0
 
 
+# Devuelve la lista de favoritos para un usuario
 def test_list_my_favorites_payload_empty(db, buyer_user):
     payload = list_my_favorites_payload(db, buyer_user.id)
     assert isinstance(payload, list)
     assert payload == []
 
 
+# Creamos dos ofertas y las agregamos a favoritos para un usuario
 def test_list_my_favorites_payload_happy_path(db, buyer_user, agency):
     # Creamos 2 listings
     l1 = Listing(

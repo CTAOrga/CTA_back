@@ -12,6 +12,7 @@ import app.models.item
 import app.models.agency  # ← nuevo
 import app.models.user  # ← nuevo
 from sqlalchemy.exc import SQLAlchemyError
+from app.core.logging_config import setup_logging
 
 
 @asynccontextmanager
@@ -31,6 +32,7 @@ async def lifespan(app: FastAPI):
         engine.dispose()  # opcional
 
 
+setup_logging()
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION, lifespan=lifespan)
 
 app.add_middleware(

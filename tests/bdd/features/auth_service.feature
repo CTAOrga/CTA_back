@@ -1,4 +1,4 @@
-Feature: Autenticación a nivel servicio
+Feature: Autenticación a nivel servicio (controller)
   Para asegurar que el servicio valida credenciales correctamente
 
   Scenario: Password inválido

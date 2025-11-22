@@ -6,9 +6,13 @@ from app.api.deps import get_db, require_role
 from app.models.user import User, UserRole
 from app.models.listing import Listing
 from app.schemas.listing import ListingOut, ListingCreate, ListingUpdate
-from app.api.deps import optional_current_user
+from app.api.deps import optional_current_user, get_current_user
 from app.models.favorite import Favorite
+from app.services import listings as listings_service
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -159,3 +163,25 @@ def delete_listing(
     db.delete(listing)
     db.commit()
     return None
+
+
+@router.get(
+    "/{listing_id}",
+    response_model=ListingOut,
+    dependencies=[Depends(require_role(UserRole.buyer))],
+)
+def get_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Devuelve el detalle de una oferta para un comprador logueado,
+    incluyendo si está marcada como favorita.
+    """
+    logger.info(f"[endpoint] listing_id={listing_id}, current_user={current_user!r}")
+    return listings_service.get_listing_for_buyer(
+        db=db,
+        buyer=current_user,
+        listing_id=listing_id,
+    )
