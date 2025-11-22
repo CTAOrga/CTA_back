@@ -51,6 +51,10 @@ class User(Base):
         "Favorite", back_populates="customer", cascade="all, delete-orphan"
     )
 
+    purchases = relationship(
+        "Purchase", back_populates="buyer", cascade="all, delete-orphan"
+    )
+
     __table_args__ = (
         # Para role='agency' obliga un único usuario por agency_id.
         # (MySQL permite múltiples NULL; admin/buyer llevan agency_id NULL)

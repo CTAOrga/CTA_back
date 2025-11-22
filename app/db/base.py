@@ -9,3 +9,4 @@ from app.models import user  # noqa: F401
 from app.models import agency  # noqa: F401
 from app.models import listing  # noqa: F401
 from app.models import favorite  # noqa: F401
+from app.models import purchase  # noqa: F401

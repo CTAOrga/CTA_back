@@ -32,5 +32,8 @@ class Listing(Base):
     favorites = relationship(
         "Favorite", back_populates="listing", cascade="all, delete-orphan"
     )
+    purchases = relationship(
+        "Purchase", back_populates="listing", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (Index("ix_listings_brand_model", "brand", "model"),)
