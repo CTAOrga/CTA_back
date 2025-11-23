@@ -36,6 +36,8 @@ class ListingOut(BaseModel):
     stock: int
     seller_notes: Optional[str] = None
     is_favorite: bool = False
+    avg_rating: Optional[float] = None
+    reviews_count: int = 0
 
     class Config:
         from_attributes = True  # pydantic v2: permite orm -> schema

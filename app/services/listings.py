@@ -1,9 +1,11 @@
 import logging
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.models.listing import Listing
 from app.models.favorite import Favorite
+from app.models.review import Review
 from app.models.user import User
 from app.schemas.listing import ListingOut
 
@@ -36,6 +38,27 @@ def get_listing_for_buyer(
     is_fav = fav is not None
 
     logger.info(f"[service] fav_exists={fav!r}")
+    avg_rating = None
+    reviews_count = 0
+
+    if listing.car_model_id is not None:
+        avg_val, count_val = (
+            db.query(
+                func.avg(Review.rating),
+                func.count(Review.id),
+            )
+            .filter(Review.car_model_id == listing.car_model_id)
+            .one()
+        )
+        if count_val:
+            avg_rating = float(avg_val)  # avg_val puede venir como Decimal
+            reviews_count = int(count_val)
+
+    # devolvemos el ListingOut enriquecido
     return ListingOut.model_validate(listing, from_attributes=True).model_copy(
-        update={"is_favorite": is_fav}
+        update={
+            "is_favorite": is_fav,
+            "avg_rating": avg_rating,
+            "reviews_count": reviews_count,
+        }
     )

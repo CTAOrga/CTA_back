@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import Optional, Literal
 
@@ -9,6 +10,7 @@ from app.schemas.listing import ListingOut, ListingCreate, ListingUpdate
 from app.api.deps import optional_current_user, get_current_user
 from app.models.favorite import Favorite
 from app.services import listings as listings_service
+from app.models.review import Review
 
 import logging
 
@@ -39,6 +41,7 @@ def list_listings(
     def to_float(v):
         return None if v in (None, "", "null", "undefined") else float(v)
 
+    # Filtros
     aid = to_int(agency_id)
     if aid is not None:
         query = query.filter(Listing.agency_id == aid)
@@ -59,13 +62,8 @@ def list_listings(
         query = query.filter(Listing.brand == brand)
     if model:
         query = query.filter(Listing.model == model)
-    if agency_id:
-        query = query.filter(Listing.agency_id == agency_id)
-    if min_price is not None:
-        query = query.filter(Listing.current_price_amount >= min_price)
-    if max_price is not None:
-        query = query.filter(Listing.current_price_amount <= max_price)
 
+    # Orden
     if sort == "price_asc":
         query = query.order_by(Listing.current_price_amount.asc())
     elif sort == "price_desc":
@@ -73,28 +71,68 @@ def list_listings(
     else:
         query = query.order_by(Listing.id.desc())
 
+    # Paginación
     page = max(page, 1)
     offset = (page - 1) * page_size
-    items = query.offset(offset).limit(page_size).all()
+    items: list[Listing] = query.offset(offset).limit(page_size).all()
 
+    # Favoritos (si hay user buyer)
     fav_ids: set[int] = set()
     if current_user and current_user.role == UserRole.buyer and items:
         ids = [it.id for it in items]
         rows = (
             db.query(Favorite.listing_id)
             .filter(
-                Favorite.customer_id == current_user.id, Favorite.listing_id.in_(ids)
+                Favorite.customer_id == current_user.id,
+                Favorite.listing_id.in_(ids),
             )
             .all()
         )
         fav_ids = {rid for (rid,) in rows}
 
-    return [
-        ListingOut.model_validate(it, from_attributes=True).model_copy(
-            update={"is_favorite": it.id in fav_ids}
+    # 👇 NUEVO: agregados de ratings por car_model
+    car_model_ids = {it.car_model_id for it in items if it.car_model_id is not None}
+
+    ratings_map: dict[int, tuple[float, int]] = {}
+    if car_model_ids:
+        agg_rows = (
+            db.query(
+                Review.car_model_id,
+                func.avg(Review.rating).label("avg_rating"),
+                func.count(Review.id).label("count_reviews"),
+            )
+            .filter(Review.car_model_id.in_(car_model_ids))
+            .group_by(Review.car_model_id)
+            .all()
         )
-        for it in items
-    ]
+        ratings_map = {
+            cm_id: (float(avg_rating), int(count_reviews))
+            for (cm_id, avg_rating, count_reviews) in agg_rows
+        }
+
+    # ⚠️ ACÁ INICIALIZAMOS result ANTES DE USARLA
+    result: list[ListingOut] = []
+
+    for it in items:
+        base = ListingOut.model_validate(it, from_attributes=True)
+        is_favorite = it.id in fav_ids
+
+        avg_rating = None
+        reviews_count = 0
+        if it.car_model_id and it.car_model_id in ratings_map:
+            avg_rating, reviews_count = ratings_map[it.car_model_id]
+
+        result.append(
+            base.model_copy(
+                update={
+                    "is_favorite": is_favorite,
+                    "avg_rating": avg_rating,
+                    "reviews_count": reviews_count,
+                }
+            )
+        )
+
+    return result
 
 
 @router.post("", response_model=ListingOut, status_code=status.HTTP_201_CREATED)

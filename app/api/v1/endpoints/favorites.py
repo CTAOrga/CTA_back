@@ -16,12 +16,16 @@ from app.services.favorites import (
 router = APIRouter()
 
 
-@router.get("/my", response_model=list[dict])
+@router.get(
+    "/my",
+    response_model=list[dict],
+    dependencies=[Depends(require_role(UserRole.buyer))],
+)
 def my_favorites(
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(UserRole.buyer)),
+    current_user: User = Depends(get_current_user),
 ):
-    return list_my_favorites_payload(db, user.id)
+    return list_my_favorites_payload(db, current_user.id)
 
 
 @router.post(

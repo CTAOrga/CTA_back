@@ -2,6 +2,7 @@ from decimal import Decimal
 from sqlalchemy import Integer, String, DateTime, Text, Numeric, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
+from app.models.car_model import CarModel
 
 
 class Listing(Base):
@@ -10,6 +11,12 @@ class Listing(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     agency_id: Mapped[int] = mapped_column(
         ForeignKey("agencies.id", ondelete="CASCADE"), index=True
+    )
+
+    car_model_id: Mapped[int] = mapped_column(
+        ForeignKey("car_models.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
 
     brand: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
@@ -35,5 +42,7 @@ class Listing(Base):
     purchases = relationship(
         "Purchase", back_populates="listing", cascade="all, delete-orphan"
     )
+
+    car_model: Mapped["CarModel"] = relationship("CarModel", back_populates="listings")
 
     __table_args__ = (Index("ix_listings_brand_model", "brand", "model"),)
