@@ -1,12 +1,12 @@
 from typing import Any, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError
 from sqlalchemy.orm import Session
-
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User, UserRole
+from jose import JWTError
+from jose.exceptions import ExpiredSignatureError
 
 bearer_required = HTTPBearer(auto_error=True)
 bearer_optional = HTTPBearer(auto_error=False)
@@ -55,9 +55,15 @@ def get_current_user(
     token = creds.credentials
     try:
         payload: dict[str, Any] = decode_token(token)
-    except JWTError:
+    except JWTError as e:
+        if isinstance(e, ExpiredSignatureError):
+            detail = "Token expirado"
+        else:
+            detail = "Token inválido"
+
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=detail,
         )
 
     sub = payload.get("sub")
@@ -66,7 +72,7 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token sin 'sub'"
         )
 
-    user_id = _as_int_id(payload.get("sub"))
+    user_id = _as_int_id(sub)
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token 'sub' inválido"
