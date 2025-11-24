@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
+from app.api.deps import get_current_user
 from app.api.deps import require_role
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.user import User, UserRole, AgencyUser
 from app.models.agency import Agency
 from app.schemas.user import CreateAgencyUser, UserOut
+from app.schemas.listing import ListingOut, PaginatedListingsOut
+from app.services import listings as listings_service
 
 router = APIRouter()
 
@@ -37,3 +39,48 @@ def create_agency_user(payload: CreateAgencyUser, db: Session = Depends(get_db))
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get(
+    "/my-listings",
+    response_model=PaginatedListingsOut,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def my_listings(
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Devuelve los listings de la agencia logueada, paginados.
+    """
+    agency_id = current_user.agency_id
+
+    if agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agencia asociada",
+        )
+
+    return listings_service.list_my_agency_listings(
+        db=db,
+        agency_id=agency_id,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get(
+    "/my-listings/{listing_id}",
+    response_model=ListingOut,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def get_my_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return listings_service.get_listing_owned_by_agency(
+        db, listing_id, current_user.agency_id
+    )

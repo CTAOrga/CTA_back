@@ -6,7 +6,11 @@ from typing import Optional, Literal
 from app.api.deps import get_db, require_role
 from app.models.user import User, UserRole
 from app.models.listing import Listing
-from app.schemas.listing import ListingOut, ListingCreate, ListingUpdate
+from app.schemas.listing import (
+    ListingOut,
+    ListingCreate,
+    ListingUpdate,
+)
 from app.api.deps import optional_current_user, get_current_user
 from app.models.favorite import Favorite
 from app.services import listings as listings_service
@@ -110,7 +114,6 @@ def list_listings(
             for (cm_id, avg_rating, count_reviews) in agg_rows
         }
 
-    # ⚠️ ACÁ INICIALIZAMOS result ANTES DE USARLA
     result: list[ListingOut] = []
 
     for it in items:
@@ -223,3 +226,62 @@ def get_listing(
         buyer=current_user,
         listing_id=listing_id,
     )
+
+
+@router.post(
+    "/{listing_id}/cancel",
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def cancel_my_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    agency_id = current_user.agency_id
+    if not agency_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Usuario sin agencia asociada",
+        )
+
+    return listings_service.cancel_listing(db, listing_id, agency_id)
+
+
+@router.post(
+    "/{listing_id}/activate",
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def activate_my_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    agency_id = current_user.agency_id
+    if not agency_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Usuario sin agencia asociada",
+        )
+
+    return listings_service.activate_listing(db, listing_id, agency_id)
+
+
+@router.delete(
+    "/{listing_id}",
+    status_code=204,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def delete_my_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    agency_id = current_user.agency_id
+    if not agency_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Usuario sin agencia asociada",
+        )
+
+    listings_service.delete_listing(db, listing_id, agency_id)
+    return None

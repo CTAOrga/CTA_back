@@ -1,5 +1,16 @@
 from decimal import Decimal
-from sqlalchemy import Integer, String, DateTime, Text, Numeric, ForeignKey, Index, func
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Text,
+    Numeric,
+    ForeignKey,
+    Index,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from app.models.car_model import CarModel
@@ -34,6 +45,8 @@ class Listing(Base):
     created_at: Mapped["DateTime"] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+    is_active = Column(Boolean, nullable=False, server_default="1")
 
     agency = relationship("Agency", back_populates="listings")
     favorites = relationship(

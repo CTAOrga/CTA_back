@@ -1,5 +1,6 @@
+from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional
 
 
 class ListingBase(BaseModel):
@@ -39,5 +40,25 @@ class ListingOut(BaseModel):
     avg_rating: Optional[float] = None
     reviews_count: int = 0
 
+
+class ListingAgencyOut(BaseModel):
+    id: int
+    car_model_id: int
+    price: float
+    currency: str
+    stock: int
+    is_active: bool
+    created_at: datetime
+
+    brand: str
+    model: str
+
     class Config:
         from_attributes = True  # pydantic v2: permite orm -> schema
+
+
+class PaginatedListingsOut(BaseModel):
+    items: List[ListingAgencyOut]
+    total: int
+    page: int
+    page_size: int
