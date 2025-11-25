@@ -7,8 +7,8 @@ from enum import Enum as PyEnum
 
 
 class PurchaseStatus(str, PyEnum):
-    ACTIVE = "active"
-    CANCELLED = "cancelled"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
 
 
 class Purchase(Base):
@@ -38,7 +38,7 @@ class Purchase(Base):
     status: Mapped[PurchaseStatus] = mapped_column(
         Enum(PurchaseStatus, name="purchase_status"),
         nullable=False,
-        default=PurchaseStatus.ACTIVE,
+        default=PurchaseStatus.COMPLETED,
     )
 
     created_at: Mapped["DateTime"] = mapped_column(

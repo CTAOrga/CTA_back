@@ -7,14 +7,15 @@ from app.api.deps import get_db, require_role
 from app.models.user import User, UserRole
 from app.models.listing import Listing
 from app.schemas.listing import (
-    ListingOut,
     ListingCreate,
+    ListingOut,
     ListingUpdate,
 )
 from app.api.deps import optional_current_user, get_current_user
 from app.models.favorite import Favorite
 from app.services import listings as listings_service
 from app.models.review import Review
+from app.services import inventory as inventory_service
 
 import logging
 
@@ -138,22 +139,42 @@ def list_listings(
     return result
 
 
-@router.post("", response_model=ListingOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ListingOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
 def create_listing(
     payload: ListingCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(UserRole.agency)),
+    user: User = Depends(get_current_user),
 ):
     # Si el payload trae agency_id, validamos que coincida con la agencia del user
     if user.agency_id is None:
         raise HTTPException(400, "El usuario de agencia no tiene agency_id asignado")
-    if payload.agency_id != user.agency_id:
-        raise HTTPException(403, "No podés crear ofertas para otra agencia")
+    # if payload.agency_id != user.agency_id:
+    #    raise HTTPException(403, "No podés crear ofertas para otra agencia")
+
+    try:
+        inv = inventory_service.get_inventory_item_for_agency(
+            db=db,
+            inventory_id=payload.inventory_id,
+            agency_id=user.agency_id,
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=404,
+            detail="Item de inventario no encontrado para esta agencia",
+        )
+
+    car_model = inv.car_model  # relación desde AgencyInventory
 
     listing = Listing(
-        agency_id=payload.agency_id,
-        brand=payload.brand,
-        model=payload.model,
+        agency_id=user.agency_id,
+        car_model_id=car_model.id,
+        brand=car_model.brand,
+        model=car_model.model,
         current_price_amount=payload.current_price_amount,
         current_price_currency=payload.current_price_currency,
         stock=payload.stock,
@@ -166,12 +187,16 @@ def create_listing(
     return listing
 
 
-@router.patch("/{listing_id}", response_model=ListingOut)
+@router.patch(
+    "/{listing_id}",
+    response_model=ListingOut,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
 def update_listing(
     listing_id: int,
     payload: ListingUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_role("agency")),
+    user: User = Depends(get_current_user),
 ):
     listing = db.get(Listing, listing_id)
     if not listing:

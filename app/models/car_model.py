@@ -16,3 +16,9 @@ class CarModel(Base):
 
     listings = relationship("Listing", back_populates="car_model")
     reviews = relationship("Review", back_populates="car_model")
+
+    inventory_items = relationship(
+        "Inventory",
+        back_populates="car_model",
+        cascade="all, delete-orphan",
+    )

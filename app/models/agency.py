@@ -15,3 +15,9 @@ class Agency(Base):
     listings = relationship(
         "Listing", back_populates="agency", cascade="all, delete-orphan"
     )
+
+    inventory_items = relationship(
+        "Inventory",
+        back_populates="agency",
+        cascade="all, delete-orphan",
+    )

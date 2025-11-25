@@ -14,7 +14,9 @@ class ListingBase(BaseModel):
 
 
 class ListingCreate(ListingBase):
-    agency_id: int  # para agency podemos inferirlo del user.agency_id (ver endpoint)
+    inventory_id: int = Field(
+        ..., description="ID del item de inventario de la agencia"
+    )
 
 
 class ListingUpdate(BaseModel):

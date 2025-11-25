@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.api.deps import require_role
@@ -6,9 +7,18 @@ from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.user import User, UserRole, AgencyUser
 from app.models.agency import Agency
+from app.schemas.purchase import AgencyCustomerOut, AgencySaleOut
 from app.schemas.user import CreateAgencyUser, UserOut
 from app.schemas.listing import ListingOut, PaginatedListingsOut
 from app.services import listings as listings_service
+from app.services import purchases as purchases_service
+from app.schemas.inventory import (
+    InventoryItemCreate,
+    InventoryItemUpdate,
+    InventoryItemOut,
+    PaginatedInventoryOut,
+)
+from app.services import inventory as inventory_service
 
 router = APIRouter()
 
@@ -83,4 +93,176 @@ def get_my_listing(
 ):
     return listings_service.get_listing_owned_by_agency(
         db, listing_id, current_user.agency_id
+    )
+
+
+@router.get(
+    "/my-sales",
+    response_model=list[AgencySaleOut],
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def my_sales(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Devuelve todas las ventas de la agencia logueada.
+    """
+    if current_user.agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agencia asociada",
+        )
+
+    return purchases_service.list_sales_for_agency(
+        db=db,
+        agency_id=current_user.agency_id,
+    )
+
+
+@router.get(
+    "/my-customers",
+    response_model=list[AgencyCustomerOut],
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def my_customers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Devuelve el resumen de clientes (compradores) de la agencia logueada.
+    """
+    if current_user.agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agencia asociada",
+        )
+
+    return purchases_service.list_customers_for_agency(
+        db=db,
+        agency_id=current_user.agency_id,
+    )
+
+
+@router.get(
+    "/my-inventory",
+    response_model=PaginatedInventoryOut,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def my_inventory(
+    page: int = 1,
+    page_size: int = 20,
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    is_used: Optional[bool] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agencia asociada",
+        )
+
+    data = inventory_service.list_inventory_items(
+        db=db,
+        agency_id=current_user.agency_id,
+        page=page,
+        page_size=page_size,
+        brand=brand,
+        model=model,
+        is_used=is_used,
+    )
+
+    items = [
+        InventoryItemOut(
+            id=it["id"],
+            car_model_id=it["car_model_id"],
+            brand=it["brand"],
+            model=it["model"],
+            quantity=it["quantity"],
+            is_used=it["is_used"],
+        )
+        for it in data["items"]
+    ]
+
+    return PaginatedInventoryOut(
+        items=items,
+        total=data["total"],
+        page=data["page"],
+        page_size=data["page_size"],
+    )
+
+
+@router.post(
+    "/my-inventory",
+    response_model=InventoryItemOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def create_inventory(
+    payload: InventoryItemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agencia asociada",
+        )
+
+    inv = inventory_service.create_inventory_item(
+        db=db,
+        agency_id=current_user.agency_id,
+        brand=payload.brand,
+        model=payload.model,
+        quantity=payload.quantity,
+        is_used=payload.is_used,
+    )
+
+    return InventoryItemOut(
+        id=inv.id,
+        car_model_id=inv.car_model_id,
+        brand=inv.car_model.brand,
+        model=inv.car_model.model,
+        quantity=inv.quantity,
+        is_used=inv.is_used,
+    )
+
+
+@router.patch(
+    "/my-inventory/{inventory_id}",
+    response_model=InventoryItemOut,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def update_inventory(
+    inventory_id: int,
+    payload: InventoryItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agencia asociada",
+        )
+
+    try:
+        inv = inventory_service.update_inventory_item(
+            db=db,
+            inventory_id=inventory_id,
+            agency_id=current_user.agency_id,
+            quantity=payload.quantity,
+            is_used=payload.is_used,
+        )
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Inventario no encontrado")
+
+    return InventoryItemOut(
+        id=inv.id,
+        car_model_id=inv.car_model_id,
+        brand=inv.car_model.brand,
+        model=inv.car_model.model,
+        quantity=inv.quantity,
+        is_used=inv.is_used,
     )
