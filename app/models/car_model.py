@@ -17,6 +17,8 @@ class CarModel(Base):
     listings = relationship("Listing", back_populates="car_model")
     reviews = relationship("Review", back_populates="car_model")
 
+    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     inventory_items = relationship(
         "Inventory",
         back_populates="car_model",

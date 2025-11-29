@@ -12,6 +12,7 @@ from app.services import inventory as inventory_service
 from app.schemas.inventory import (
     InventoryItemCreate,
     InventoryItemOut,
+    InventoryItemUpdate,
     PaginatedInventoryOut,
 )
 
@@ -84,3 +85,96 @@ def create_inventory_item(
         "quantity": inv.quantity,
         "is_used": inv.is_used,
     }
+
+
+@router.get(
+    "/{inventory_id}",
+    response_model=InventoryItemOut,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def get_inventory_by_id(
+    inventory_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agency_id asociada",
+        )
+
+    inv = inventory_service.get_inventory_item_for_agency(
+        db=db,
+        inventory_id=inventory_id,
+        agency_id=current_user.agency_id,
+    )
+
+    return {
+        "id": inv.id,
+        "car_model_id": inv.car_model_id,
+        "brand": inv.car_model.brand,
+        "model": inv.car_model.model,
+        "quantity": inv.quantity,
+        "is_used": inv.is_used,
+    }
+
+
+@router.patch(
+    "/{inventory_id}",
+    response_model=InventoryItemOut,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def update_inventory_item_endpoint(
+    inventory_id: int,
+    payload: InventoryItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agency_id asociada",
+        )
+
+    inv = inventory_service.update_inventory_item(
+        db=db,
+        inventory_id=inventory_id,
+        agency_id=current_user.agency_id,
+        quantity=payload.quantity,
+        is_used=payload.is_used,
+    )
+
+    return {
+        "id": inv.id,
+        "car_model_id": inv.car_model_id,
+        "brand": inv.car_model.brand,
+        "model": inv.car_model.model,
+        "quantity": inv.quantity,
+        "is_used": inv.is_used,
+    }
+
+
+@router.delete(
+    "/{inventory_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.agency))],
+)
+def delete_inventory_item_endpoint(
+    inventory_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.agency_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario de agencia no tiene una agency_id asociada",
+        )
+
+    inventory_service.delete_inventory_item(
+        db=db,
+        inventory_id=inventory_id,
+        agency_id=current_user.agency_id,
+    )
+
+    # 204 → sin body
+    return None

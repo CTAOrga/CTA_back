@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -70,38 +71,59 @@ def list_my_agency_listings(
     agency_id: int,
     page: int = 1,
     page_size: int = 10,
+    brand: Optional[str] = None,
+    model: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    sort: str = "newest",
 ):
-    """
-    Lista los listings de una agencia con paginación y orden por más nuevos primero.
-    """
-
     if page < 1:
         page = 1
     if page_size < 1:
         page_size = 10
 
-    # Query base
     query = (
         db.query(Listing, CarModel)
         .join(CarModel, Listing.car_model_id == CarModel.id)
         .filter(Listing.agency_id == agency_id)
     )
 
-    # Total
+    if brand:
+        like = f"%{brand}%"
+        query = query.filter(CarModel.brand.ilike(like))
+
+    if model:
+        like = f"%{model}%"
+        query = query.filter(CarModel.model.ilike(like))
+
+    if is_active is not None:
+        query = query.filter(Listing.is_active == is_active)
+
+    if min_price is not None:
+        query = query.filter(Listing.current_price_amount >= min_price)
+
+    if max_price is not None:
+        query = query.filter(Listing.current_price_amount <= max_price)
+
+    # -------- Orden --------
+    if sort == "price_asc":
+        query = query.order_by(Listing.current_price_amount.asc())
+    elif sort == "price_desc":
+        query = query.order_by(Listing.current_price_amount.desc())
+    else:
+        # "newest" por defecto
+        query = query.order_by(desc(Listing.created_at))
+
+    # Total **después** de filtros
     total = query.count()
 
     # Paginado
     offset = (page - 1) * page_size
 
-    rows = (
-        query.order_by(desc(Listing.created_at))  # más nuevos primero
-        .offset(offset)
-        .limit(page_size)
-        .all()
-    )
+    rows = query.offset(offset).limit(page_size).all()
 
     items = []
-
     for listing, car_model in rows:
         items.append(
             {

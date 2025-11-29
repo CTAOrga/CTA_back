@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 from app.models.user import UserRole
@@ -34,3 +35,22 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
     role: UserRole
     agency_id: Optional[int] = None
+
+
+class AdminUserSummary(BaseModel):
+    id: int
+    email: str
+    role: UserRole
+    agency_id: int | None = None
+    agency_name: str | None = None
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class PaginatedUsersOut(BaseModel):
+    items: list[AdminUserSummary]
+    total: int
+    page: int
+    page_size: int

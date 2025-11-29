@@ -1,4 +1,5 @@
-from typing import Optional
+from datetime import date
+from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
@@ -59,6 +60,12 @@ def create_agency_user(payload: CreateAgencyUser, db: Session = Depends(get_db))
 def my_listings(
     page: int = 1,
     page_size: int = 10,
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    is_active: Optional[bool] = Query(None),
+    min_price: Optional[float] = Query(None),
+    max_price: Optional[float] = Query(None),
+    sort: Optional[Literal["price_asc", "price_desc", "newest"]] = "newest",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -78,6 +85,12 @@ def my_listings(
         agency_id=agency_id,
         page=page,
         page_size=page_size,
+        brand=brand,
+        model=model,
+        is_active=is_active,
+        min_price=min_price,
+        max_price=max_price,
+        sort=sort,
     )
 
 
@@ -104,9 +117,14 @@ def get_my_listing(
 def my_sales(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    customer: Optional[str] = Query(None, description="Nombre o email del cliente"),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
 ):
     """
-    Devuelve todas las ventas de la agencia logueada.
+    Devuelve las ventas de la agencia logueada, con filtros opcionales.
     """
     if current_user.agency_id is None:
         raise HTTPException(
@@ -117,6 +135,11 @@ def my_sales(
     return purchases_service.list_sales_for_agency(
         db=db,
         agency_id=current_user.agency_id,
+        brand=brand,
+        model=model,
+        customer=customer,
+        date_from=date_from,
+        date_to=date_to,
     )
 
 
@@ -128,9 +151,12 @@ def my_sales(
 def my_customers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    q: Optional[str] = Query(None, description="Nombre o email del cliente"),
+    min_purchases: Optional[int] = Query(None, ge=1),
+    min_spent: Optional[float] = Query(None, ge=0.0),
 ):
     """
-    Devuelve el resumen de clientes (compradores) de la agencia logueada.
+    Devuelve el resumen de clientes con filtros opcionales.
     """
     if current_user.agency_id is None:
         raise HTTPException(
@@ -141,6 +167,9 @@ def my_customers(
     return purchases_service.list_customers_for_agency(
         db=db,
         agency_id=current_user.agency_id,
+        q=q,
+        min_purchases=min_purchases,
+        min_spent=min_spent,
     )
 
 

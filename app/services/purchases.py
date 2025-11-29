@@ -1,4 +1,7 @@
+from datetime import date, datetime
 import logging
+from typing import Optional
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
@@ -6,6 +9,7 @@ from app.models.listing import Listing
 from app.models.purchase import Purchase, PurchaseStatus
 from app.models.user import User
 from app.schemas.purchase import AgencyCustomerOut, AgencySaleOut, PurchaseCreate
+from app.schemas.reports import TopBuyerOut
 
 logger = logging.getLogger(__name__)
 
@@ -183,12 +187,14 @@ def reactivate_purchase_for_buyer(
 def list_sales_for_agency(
     db: Session,
     agency_id: int,
+    brand: Optional[str] = None,
+    model: Optional[str] = None,
+    customer: Optional[str] = None,  # nombre o email
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
 ) -> list[AgencySaleOut]:
-    """
-    Devuelve todas las compras de los listings de una agencia.
-    Por ahora sin paginación ni filtros, después refinamos.
-    """
-    rows = (
+
+    q = (
         db.query(Purchase, Listing, User)
         .join(Listing, Purchase.listing_id == Listing.id)
         .join(User, Purchase.buyer_id == User.id)
@@ -196,9 +202,32 @@ def list_sales_for_agency(
             Listing.agency_id == agency_id,
             Purchase.status == PurchaseStatus.COMPLETED,
         )
-        .order_by(Purchase.created_at.desc())
-        .all()
     )
+
+    # --- Filtros opcionales ---
+    if brand:
+        q = q.filter(Listing.brand.ilike(f"%{brand}%"))
+
+    if model:
+        q = q.filter(Listing.model.ilike(f"%{model}%"))
+
+    if customer:
+        needle = f"%{customer}%"
+        # si tu User no tiene full_name, podés dejar sólo email
+        q = q.filter(
+            (User.email.ilike(needle))
+            # si tenés nombre completo:
+            # | (User.full_name.ilike(needle))
+        )
+
+    if date_from:
+        # Purchase.created_at es datetime, date_from es date, la comparación funciona igual
+        q = q.filter(Purchase.created_at >= date_from)
+
+    if date_to:
+        q = q.filter(Purchase.created_at <= date_to)
+
+    rows = q.order_by(Purchase.created_at.desc()).all()
 
     result: list[AgencySaleOut] = []
 
@@ -228,22 +257,23 @@ def list_sales_for_agency(
 def list_customers_for_agency(
     db: Session,
     agency_id: int,
+    q: Optional[str] = None,  # buscar por email (o nombre si luego lo agregás)
+    min_purchases: Optional[int] = None,  # compras mínimas
+    min_spent: Optional[float] = None,  # monto mínimo gastado
 ) -> list[AgencyCustomerOut]:
-    """
-    Devuelve un resumen de clientes para una agencia:
-    cuántas compras hicieron y cuánto gastaron.
-    """
-    from sqlalchemy import func
 
-    rows = (
+    # Expresiones reutilizables para HAVING
+    total_purchases_expr = func.count(Purchase.id)
+    total_spent_expr = func.sum(Purchase.unit_price_amount * Purchase.quantity)
+    last_purchase_expr = func.max(Purchase.created_at)
+
+    query = (
         db.query(
             User.id.label("customer_id"),
             User.email.label("email"),
-            func.count(Purchase.id).label("total_purchases"),
-            func.sum(Purchase.unit_price_amount * Purchase.quantity).label(
-                "total_spent"
-            ),
-            func.max(Purchase.created_at).label("last_purchase_at"),
+            total_purchases_expr.label("total_purchases"),
+            total_spent_expr.label("total_spent"),
+            last_purchase_expr.label("last_purchase_at"),
         )
         .join(Purchase, Purchase.buyer_id == User.id)
         .join(Listing, Purchase.listing_id == Listing.id)
@@ -252,9 +282,23 @@ def list_customers_for_agency(
             Purchase.status == PurchaseStatus.COMPLETED,
         )
         .group_by(User.id, User.email)
-        .order_by(func.max(Purchase.created_at).desc())
-        .all()
     )
+    # --- Filtros opcionales ---
+    # Buscar por email (si después tenés nombre, acá podés extenderlo)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(User.email.ilike(like))
+
+    # Mínimo de compras
+    if min_purchases is not None:
+        query = query.having(total_purchases_expr >= min_purchases)
+
+    # Mínimo gastado
+    if min_spent is not None:
+        query = query.having(total_spent_expr >= min_spent)
+
+    # Orden: último que compró primero
+    rows = query.order_by(last_purchase_expr.desc()).all()
 
     result: list[AgencyCustomerOut] = []
 

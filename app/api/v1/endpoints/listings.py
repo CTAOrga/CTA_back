@@ -1,7 +1,8 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from typing import Optional, Literal
+from typing import Optional, Literal, Union
 
 from app.api.deps import get_db, require_role
 from app.models.user import User, UserRole
@@ -16,6 +17,7 @@ from app.models.favorite import Favorite
 from app.services import listings as listings_service
 from app.models.review import Review
 from app.services import inventory as inventory_service
+from app.utils.datetime import parse_expires_on
 
 import logging
 
@@ -168,7 +170,19 @@ def create_listing(
             detail="Item de inventario no encontrado para esta agencia",
         )
 
+    if payload.stock > inv.quantity:
+        # No alcanza el stock real → no se crea la oferta
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Stock insuficiente en inventario. Disponible: {inv.quantity}",
+        )
+
+    # 4) Descontar stock del inventario (queda comprometido a esta oferta)
+    inv.quantity -= payload.stock
+
     car_model = inv.car_model  # relación desde AgencyInventory
+
+    expires_on = parse_expires_on(payload.expires_on)
 
     listing = Listing(
         agency_id=user.agency_id,
@@ -179,7 +193,7 @@ def create_listing(
         current_price_currency=payload.current_price_currency,
         stock=payload.stock,
         seller_notes=payload.seller_notes,
-        expires_on=payload.expires_on,
+        expires_on=expires_on,
     )
     db.add(listing)
     db.commit()
@@ -212,23 +226,6 @@ def update_listing(
     db.commit()
     db.refresh(listing)
     return listing
-
-
-@router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_listing(
-    listing_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_role("agency")),
-):
-    listing = db.get(Listing, listing_id)
-    if not listing:
-        raise HTTPException(404, "Listing no encontrada")
-    if user.agency_id != listing.agency_id:
-        raise HTTPException(403, "No podés borrar ofertas de otra agencia")
-
-    db.delete(listing)
-    db.commit()
-    return None
 
 
 @router.get(

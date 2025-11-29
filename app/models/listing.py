@@ -46,7 +46,9 @@ class Listing(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    is_active = Column(Boolean, nullable=False, server_default="1")
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="1", default=True
+    )
 
     agency = relationship("Agency", back_populates="listings")
     favorites = relationship(

@@ -11,28 +11,6 @@ from app.models.inventory import Inventory
 logger = logging.getLogger(__name__)
 
 
-def get_or_create_car_model(
-    db: Session,
-    brand: str,
-    model: str,
-) -> CarModel:
-    car_model = (
-        db.query(CarModel)
-        .filter(
-            CarModel.brand == brand,
-            CarModel.model == model,
-        )
-        .first()
-    )
-    if car_model:
-        return car_model
-
-    car_model = CarModel(brand=brand, model=model)
-    db.add(car_model)
-    db.flush()  # obtiene car_model.id sin commit
-    return car_model
-
-
 def create_inventory_item(
     db: Session,
     *,
@@ -42,7 +20,21 @@ def create_inventory_item(
     quantity: int,
     is_used: bool,
 ) -> Inventory:
-    car_model = get_or_create_car_model(db, brand=brand, model=model)
+
+    car_model = (
+        db.query(CarModel)
+        .filter(
+            CarModel.brand == brand,
+            CarModel.model == model,
+        )
+        .first()
+    )
+
+    if not car_model:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El modelo {brand} {model} no existe en el catálogo",
+        )
 
     # Podrías consolidar si ya existe uno igual (agency+car_model+is_used)
     existing = (
@@ -175,3 +167,22 @@ def update_inventory_item(
     db.commit()
     db.refresh(inv)
     return inv
+
+
+def delete_inventory_item(
+    db: Session,
+    *,
+    inventory_id: int,
+    agency_id: int,
+) -> None:
+    """
+    Elimina un item de inventario perteneciente a la agencia.
+    """
+    inv = get_inventory_item_for_agency(
+        db,
+        inventory_id=inventory_id,
+        agency_id=agency_id,
+    )
+
+    db.delete(inv)
+    db.commit()
