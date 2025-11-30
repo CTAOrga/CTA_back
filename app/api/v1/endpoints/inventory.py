@@ -27,7 +27,6 @@ router = APIRouter()
 def list_inventory(
     brand: Optional[str] = None,
     model: Optional[str] = None,
-    is_used: Optional[bool] = None,
     page: int = 1,
     page_size: int = 20,
     db: Session = Depends(get_db),
@@ -46,7 +45,6 @@ def list_inventory(
         page_size=page_size,
         brand=brand,
         model=model,
-        is_used=is_used,
     )
 
 
@@ -73,7 +71,6 @@ def create_inventory_item(
         brand=payload.brand,
         model=payload.model,
         quantity=payload.quantity,
-        is_used=payload.is_used,
     )
 
     # opcional: devolverlo “formateado” como en list_inventory_items
@@ -141,7 +138,6 @@ def update_inventory_item_endpoint(
         inventory_id=inventory_id,
         agency_id=current_user.agency_id,
         quantity=payload.quantity,
-        is_used=payload.is_used,
     )
 
     return {
@@ -150,7 +146,6 @@ def update_inventory_item_endpoint(
         "brand": inv.car_model.brand,
         "model": inv.car_model.model,
         "quantity": inv.quantity,
-        "is_used": inv.is_used,
     }
 
 

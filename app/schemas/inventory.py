@@ -17,7 +17,6 @@ class InventoryItemCreate(InventoryItemBase):
 
 class InventoryItemUpdate(BaseModel):
     quantity: Optional[int] = Field(None, ge=0)
-    is_used: Optional[bool] = None
 
 
 class InventoryItemOut(BaseModel):
@@ -26,7 +25,6 @@ class InventoryItemOut(BaseModel):
     brand: str
     model: str
     quantity: int
-    is_used: bool
 
     class Config:
         from_attributes = True

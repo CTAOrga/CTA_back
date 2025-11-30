@@ -18,7 +18,6 @@ def create_inventory_item(
     brand: str,
     model: str,
     quantity: int,
-    is_used: bool,
 ) -> Inventory:
 
     car_model = (
@@ -42,7 +41,6 @@ def create_inventory_item(
         .filter(
             Inventory.agency_id == agency_id,
             Inventory.car_model_id == car_model.id,
-            Inventory.is_used == is_used,
         )
         .first()
     )
@@ -57,7 +55,6 @@ def create_inventory_item(
         agency_id=agency_id,
         car_model_id=car_model.id,
         quantity=quantity,
-        is_used=is_used,
     )
     db.add(inv)
     db.commit()
@@ -73,7 +70,6 @@ def list_inventory_items(
     page_size: int = 20,
     brand: Optional[str] = None,
     model: Optional[str] = None,
-    is_used: Optional[bool] = None,
 ):
     if page < 1:
         page = 1
@@ -90,8 +86,6 @@ def list_inventory_items(
         query = query.filter(CarModel.brand.ilike(f"%{brand}%"))
     if model:
         query = query.filter(CarModel.model.ilike(f"%{model}%"))
-    if is_used is not None:
-        query = query.filter(Inventory.is_used == is_used)
 
     total = query.count()
     offset = (page - 1) * page_size
@@ -152,7 +146,6 @@ def update_inventory_item(
     inventory_id: int,
     agency_id: int,
     quantity: Optional[int] = None,
-    is_used: Optional[bool] = None,
 ) -> Inventory:
     inv = get_inventory_item_for_agency(
         db, inventory_id=inventory_id, agency_id=agency_id
@@ -160,8 +153,6 @@ def update_inventory_item(
 
     if quantity is not None:
         inv.quantity = quantity
-    if is_used is not None:
-        inv.is_used = is_used
 
     db.add(inv)
     db.commit()
