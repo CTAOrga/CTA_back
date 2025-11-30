@@ -1,10 +1,12 @@
+from datetime import date, timedelta
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.models.listing import Listing
 from app.models.review import Review
 from app.models.user import User
-from app.schemas.review import ReviewCreate, ReviewUpdate
+from app.schemas.review import BuyerReviewOut, ReviewCreate, ReviewUpdate
 from app.models.car_model import CarModel
 
 
@@ -95,43 +97,51 @@ def update_review_for_buyer(
 
 def list_reviews_for_buyer(
     db: Session,
-    buyer: User,
-) -> list[dict]:
-    """
-    Devuelve todas las reseñas del comprador, junto con datos del modelo
-    y (si existe) algún listing para poder ir al detalle.
-    """
-    rows = (
-        db.query(Review, CarModel)
-        .join(CarModel, Review.car_model_id == CarModel.id)
-        .filter(Review.author_id == buyer.id)
-        .order_by(Review.created_at.desc())
-        .all()
+    author: User,
+    brand: Optional[str] = None,
+    model: Optional[str] = None,
+    min_rating: Optional[int] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+) -> List[BuyerReviewOut]:
+
+    query = (
+        db.query(
+            Review.id.label("id"),
+            Review.car_model_id.label("car_model_id"),
+            Review.rating.label("rating"),
+            Review.comment.label("comment"),
+            Review.created_at.label("created_at"),
+            CarModel.brand.label("brand"),
+            CarModel.model.label("model"),
+        )
+        .join(CarModel, CarModel.id == Review.car_model_id)
+        .filter(Review.author_id == author.id)
     )
 
-    result: list[dict] = []
+    if brand:
+        query = query.filter(CarModel.brand.ilike(f"%{brand}%"))
+    if model:
+        query = query.filter(CarModel.model.ilike(f"%{model}%"))
+    if min_rating is not None:
+        query = query.filter(Review.rating >= min_rating)
+    if date_from:
+        query = query.filter(Review.created_at >= date_from)
+    if date_to:
+        query = query.filter(Review.created_at < date_to + timedelta(days=1))
 
-    for review, car_model in rows:
-        # Buscamos algún listing activo para ese modelo (el primero que haya)
-        listing = (
-            db.query(Listing.id)
-            .filter(Listing.car_model_id == car_model.id)
-            .order_by(Listing.id.asc())
-            .first()
+    query = query.order_by(Review.created_at.desc())
+    rows = query.all()
+
+    return [
+        BuyerReviewOut(
+            id=row.id,
+            car_model_id=row.car_model_id,
+            brand=row.brand,
+            model=row.model,
+            rating=row.rating,
+            comment=row.comment,
+            created_at=row.created_at,
         )
-        listing_id = listing[0] if listing else None
-
-        result.append(
-            {
-                "id": review.id,
-                "car_model_id": car_model.id,
-                "brand": car_model.brand,
-                "model": car_model.model,
-                "rating": review.rating,
-                "comment": review.comment,
-                "created_at": review.created_at,
-                "listing_id": listing_id,
-            }
-        )
-
-    return result
+        for row in rows
+    ]

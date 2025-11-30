@@ -14,6 +14,16 @@ class ReviewUpdate(BaseModel):
     comment: Optional[str] = None
 
 
+class BuyerReviewOut(BaseModel):
+    id: int
+    car_model_id: int
+    brand: str
+    model: str
+    rating: int
+    comment: str | None = None
+    created_at: datetime
+
+
 class ReviewOut(BaseModel):
     id: int
     car_model_id: int

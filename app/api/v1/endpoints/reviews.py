@@ -1,10 +1,18 @@
-from fastapi import APIRouter, Depends
+from datetime import date
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user, require_role
 from app.models.user import User, UserRole
 from app.models.listing import Listing
-from app.schemas.review import ReviewCreate, ReviewOut, ReviewUpdate, MyReviewRow
+from app.schemas.review import (
+    BuyerReviewOut,
+    ReviewCreate,
+    ReviewOut,
+    ReviewUpdate,
+    MyReviewRow,
+)
 from app.services import reviews as reviews_service
 
 router = APIRouter()
@@ -76,17 +84,24 @@ def update_review(
 
 @router.get(
     "/my",
-    response_model=list[MyReviewRow],
+    response_model=List[BuyerReviewOut],
     dependencies=[Depends(require_role(UserRole.buyer))],
 )
-def my_reviews(
+def list_my_reviews(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    min_rating: Optional[int] = Query(None, ge=1, le=5),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
 ):
-    """
-    Lista todas las reseñas realizadas por el comprador actual.
-    """
     return reviews_service.list_reviews_for_buyer(
         db=db,
-        buyer=current_user,
+        author=current_user,
+        brand=brand,
+        model=model,
+        min_rating=min_rating,
+        date_from=date_from,
+        date_to=date_to,
     )
