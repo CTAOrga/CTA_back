@@ -1,8 +1,10 @@
 # app/api/v1/endpoints/purchases.py
-from fastapi import APIRouter, Depends, status
+from typing import Optional
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user, require_role
+from app.models.purchase import PurchaseStatus
 from app.models.user import User, UserRole
 from app.schemas.purchase import PurchaseCreate, PurchaseOut
 from app.services import purchases as purchases_service
@@ -36,12 +38,51 @@ def create_purchase(
 def list_my_purchases(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    # 🔹 Filtros opcionales
+    status: Optional[PurchaseStatus] = Query(
+        None,
+        description="Estado de la compra (active/cancelled)",
+    ),
+    listing_id: Optional[int] = Query(
+        None,
+        ge=1,
+        description="ID del listing",
+    ),
+    min_qty: Optional[int] = Query(
+        None,
+        ge=1,
+        description="Cantidad mínima",
+    ),
+    max_qty: Optional[int] = Query(
+        None,
+        ge=1,
+        description="Cantidad máxima",
+    ),
+    min_price: Optional[float] = Query(
+        None,
+        ge=0,
+        description="Precio unitario mínimo",
+    ),
+    max_price: Optional[float] = Query(
+        None,
+        ge=0,
+        description="Precio unitario máximo",
+    ),
 ):
     """
-    Devuelve las compras del buyer logueado (activas y canceladas).
-    Ideal para la pantalla 'Mis compras'.
+    Devuelve las compras del buyer logueado (activas y canceladas),
+    con filtros opcionales.
     """
-    return purchases_service.list_purchases_for_buyer(db=db, buyer=current_user)
+    return purchases_service.list_purchases_for_buyer(
+        db=db,
+        buyer=current_user,
+        status=status,
+        listing_id=listing_id,
+        min_qty=min_qty,
+        max_qty=max_qty,
+        min_price=min_price,
+        max_price=max_price,
+    )
 
 
 @router.post(

@@ -1,6 +1,6 @@
 from datetime import date, datetime
 import logging
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
@@ -67,14 +67,41 @@ def create_purchase_for_buyer(
     return purchase
 
 
-def list_purchases_for_buyer(db: Session, buyer: User) -> list[Purchase]:
-    rows = (
-        db.query(Purchase)
-        .filter(Purchase.buyer_id == buyer.id)
-        .order_by(Purchase.created_at.desc())
-        .all()
-    )
-    return rows
+def list_purchases_for_buyer(
+    db: Session,
+    buyer: User,
+    status: Optional[PurchaseStatus] = None,
+    listing_id: Optional[int] = None,
+    min_qty: Optional[int] = None,
+    max_qty: Optional[int] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+) -> List[Purchase]:
+
+    query = db.query(Purchase).filter(Purchase.buyer_id == buyer.id)
+
+    if status is not None:
+        query = query.filter(Purchase.status == status)
+
+    if listing_id is not None:
+        query = query.filter(Purchase.listing_id == listing_id)
+
+    if min_qty is not None:
+        query = query.filter(Purchase.quantity >= min_qty)
+
+    if max_qty is not None:
+        query = query.filter(Purchase.quantity <= max_qty)
+
+    if min_price is not None:
+        query = query.filter(Purchase.unit_price_amount >= min_price)
+
+    if max_price is not None:
+        query = query.filter(Purchase.unit_price_amount <= max_price)
+
+    # opcional: orden por fecha desc
+    query = query.order_by(Purchase.created_at.desc())
+
+    return query.all()
 
 
 def cancel_purchase_for_buyer(
