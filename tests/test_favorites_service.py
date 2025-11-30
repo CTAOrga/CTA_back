@@ -1,8 +1,9 @@
 from app.models.listing import Listing
+from app.schemas.favorite import FavoriteWithListingOut
 from app.services.favorites import (
     add_favorite,
     toggle_favorite,
-    list_my_favorites_payload,
+    list_favorites_for_buyer,
 )
 from app.models.favorite import Favorite
 import time
@@ -21,7 +22,7 @@ def test_toggle_favorite(db, buyer_user, sample_listing):
 
 # Devuelve la lista de favoritos para un usuario
 def test_list_my_favorites_payload_empty(db, buyer_user):
-    payload = list_my_favorites_payload(db, buyer_user.id)
+    payload = list_favorites_for_buyer(db, buyer_user.id)
     assert isinstance(payload, list)
     assert payload == []
 
@@ -62,7 +63,7 @@ def test_list_my_favorites_payload_happy_path(db, buyer_user, agency):
     add_favorite(db, buyer_user.id, l2.id)
 
     # Ejecutamos el service
-    payload = list_my_favorites_payload(db, buyer_user.id)
+    payload = list_favorites_for_buyer(db, buyer_user.id)
 
     # Validaciones básicas
     assert isinstance(payload, list)
@@ -70,8 +71,8 @@ def test_list_my_favorites_payload_happy_path(db, buyer_user, agency):
 
     # Debe venir ordenado por created_at DESC -> l2 primero
     first, second = payload[0], payload[1]
-    assert first["listing_id"] == l2.id
-    assert second["listing_id"] == l1.id
+    assert first.listing_id == l2.id
+    assert second.listing_id == l1.id
 
     # Shape esperado por el front
     required_keys = {
@@ -84,10 +85,10 @@ def test_list_my_favorites_payload_happy_path(db, buyer_user, agency):
         "agency_id",
         "created_at",
     }
-    assert required_keys <= set(first.keys())
+    assert required_keys <= set(FavoriteWithListingOut.model_fields.keys())
 
     # Tipos y valores representativos
-    assert isinstance(first["price"], float)
-    assert first["currency"] == "USD"
-    assert first["brand"] == "Toyota"
-    assert first["model"] == "Yaris"
+    assert isinstance(first.price, float)
+    assert first.currency == "USD"
+    assert first.brand == "Toyota"
+    assert first.model == "Yaris"

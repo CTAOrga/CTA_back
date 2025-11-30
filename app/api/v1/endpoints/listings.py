@@ -66,9 +66,16 @@ def list_listings(
         query = query.filter((Listing.brand.ilike(like)) | (Listing.model.ilike(like)))
 
     if brand:
-        query = query.filter(Listing.brand == brand)
+        b = brand.strip()
+        if b:
+            like_b = f"%{b}%"
+            query = query.filter(Listing.brand.ilike(like_b))
+
     if model:
-        query = query.filter(Listing.model == model)
+        m = model.strip()
+        if m:
+            like_m = f"%{m}%"
+            query = query.filter(Listing.model.ilike(like_m))
 
     # Orden
     if sort == "price_asc":
