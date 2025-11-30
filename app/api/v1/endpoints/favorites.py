@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -6,9 +7,9 @@ from app.api.deps import get_db, require_role, get_current_user
 from app.models.user import User, UserRole
 from app.models.favorite import Favorite
 from app.models.listing import Listing
-from app.schemas.favorite import FavoriteOut
+from app.schemas.favorite import FavoriteOut, FavoriteWithListingOut
 from app.services.favorites import (
-    list_my_favorites_payload,
+    list_favorites_for_buyer,
     add_favorite as svc_add_favorite,
     remove_favorite as svc_remove_favorite,
 )
@@ -18,14 +19,27 @@ router = APIRouter()
 
 @router.get(
     "/my",
-    response_model=list[dict],
+    response_model=List[FavoriteWithListingOut],
     dependencies=[Depends(require_role(UserRole.buyer))],
 )
-def my_favorites(
+def list_my_favorites(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    agency_id: Optional[int] = Query(None, ge=1),
+    min_price: Optional[float] = Query(None, ge=0),
+    max_price: Optional[float] = Query(None, ge=0),
 ):
-    return list_my_favorites_payload(db, current_user.id)
+    return list_favorites_for_buyer(
+        db=db,
+        buyer=current_user,
+        brand=brand,
+        model=model,
+        agency_id=agency_id,
+        min_price=min_price,
+        max_price=max_price,
+    )
 
 
 @router.post(
