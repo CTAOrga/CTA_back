@@ -5,13 +5,14 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.api.v1.router import api_router
 
-# NUEVO: crear tablas
 from app.db.base import Base
 from app.db.session import get_engine
 import app.models.agency  # ← nuevo
 import app.models.user  # ← nuevo
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.logging_config import setup_logging
+import logging
+from prometheus_fastapi_instrumentator import Instrumentator
 
 
 @asynccontextmanager
@@ -26,6 +27,8 @@ async def lifespan(app: FastAPI):
         print(f"[DB] Error creando tablas: {e}")
         raise
     try:
+        instrumentator.expose(app)
+        logging.info("Startup complete. Metrics exposed.")
         yield
     finally:
         engine.dispose()  # opcional
@@ -42,6 +45,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+instrumentator = Instrumentator().instrument(app)
 
 @app.get("/health")
 def health():

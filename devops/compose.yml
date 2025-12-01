@@ -49,6 +49,34 @@ services:
       start_period: 20s
       timeout: 3s
 
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    container_name: prometheus-observer
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - cta_back_network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana-observer
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - cta_back_network
+
+
 volumes:
   mysql-data:
 
