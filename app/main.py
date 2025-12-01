@@ -47,6 +47,7 @@ app.add_middleware(
 
 instrumentator = Instrumentator().instrument(app)
 
+
 @app.get("/health")
 def health():
     return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
