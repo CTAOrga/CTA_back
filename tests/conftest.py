@@ -20,6 +20,7 @@ from starlette.testclient import TestClient
 from app.models.user import User, UserRole
 from app.models.agency import Agency
 from app.models.listing import Listing
+from app.models.car_model import CarModel
 from app.core.security import hash_password
 
 engine = create_engine(
@@ -47,6 +48,7 @@ def db() -> Iterator[Session]:
     try:
         yield s
     finally:
+        s.rollback()
         # Limpieza simple: borrar tablas en orden inverso de FKs
         # (para SQLite suele ir bien; si usás FKs estrictas, podés desactivar/activar)
         for tbl in reversed(Base.metadata.sorted_tables):
@@ -79,6 +81,9 @@ def client():
 # ------ Datos base (usan SIEMPRE la sesión 'db' del test) ------
 @pytest.fixture()
 def buyer_user(db: Session) -> User:
+    existing = db.query(User).filter_by(email="buyer@example.com").first()
+    if existing:
+        return existing
     u = User(
         email="buyer@example.com",
         password_hash=hash_password("secret"),
@@ -102,8 +107,17 @@ def agency(db: Session) -> Agency:
 
 @pytest.fixture()
 def sample_listing(db: Session, agency: Agency) -> Listing:
+    car_model = CarModel(
+        brand="Fiat",
+        model="Cronos",
+        # year es opcional
+    )
+    db.add(car_model)
+    db.commit()
+    db.refresh(car_model)
     l = Listing(
         agency_id=agency.id,
+        car_model_id=car_model.id,
         brand="Fiat",
         model="Cronos",
         current_price_amount=10000.0,
