@@ -125,6 +125,38 @@ def agency(db: Session) -> Agency:
 
 
 @pytest.fixture()
+def agency_user(db: Session, agency: Agency) -> User:
+    existing = db.query(User).filter_by(email="agency@example.com").first()
+    if existing:
+        return existing
+
+    u = User(
+        email="agency@example.com",
+        password_hash=hash_password("secret"),
+        role=UserRole.agency,
+        is_active=True,
+        agency_id=agency.id,
+    )
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    return u
+
+
+@pytest.fixture()
+def fiat_cronos_carmodel(db: Session) -> CarModel:
+    existing = db.query(CarModel).filter_by(brand="Fiat", model="Cronos").first()
+    if existing:
+        return existing
+
+    cm = CarModel(brand="Fiat", model="Cronos")
+    db.add(cm)
+    db.commit()
+    db.refresh(cm)
+    return cm
+
+
+@pytest.fixture()
 def sample_listing(db: Session, agency: Agency) -> Listing:
     car_model = CarModel(
         brand="Fiat",
