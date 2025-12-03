@@ -11,7 +11,6 @@ from app.schemas.review import (
     ReviewCreate,
     ReviewOut,
     ReviewUpdate,
-    MyReviewRow,
 )
 from app.services import reviews as reviews_service
 

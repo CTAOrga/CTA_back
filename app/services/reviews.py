@@ -130,7 +130,7 @@ def list_reviews_for_buyer(
     if date_to:
         query = query.filter(Review.created_at < date_to + timedelta(days=1))
 
-    query = query.order_by(Review.created_at.desc())
+    query = query.order_by(Review.created_at.desc(), Review.id.desc())
     rows = query.all()
 
     return [

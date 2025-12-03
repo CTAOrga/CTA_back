@@ -3,7 +3,6 @@ from app.models.listing import Listing
 from app.schemas.favorite import FavoriteWithListingOut
 from app.services.favorites import (
     add_favorite,
-    toggle_favorite,
     list_favorites_for_buyer,
 )
 from app.models.favorite import Favorite
@@ -15,13 +14,19 @@ def test_toggle_favorite(db, buyer_user, sample_listing):
 
     assert db.query(Favorite).count() == 0
 
-    state = toggle_favorite(db, buyer_user.id, sample_listing.id)
-    assert state is True
+    fav1 = add_favorite(db, buyer_user.id, sample_listing.id)
+    assert isinstance(fav1, Favorite)
     assert db.query(Favorite).count() == 1
 
-    state = toggle_favorite(db, buyer_user.id, sample_listing.id)
-    assert state is False
-    assert db.query(Favorite).count() == 0
+    fav2 = add_favorite(db, buyer_user.id, sample_listing.id)
+    assert isinstance(fav2, Favorite)
+
+    assert fav2.customer_id == buyer_user.id
+    assert fav2.listing_id == sample_listing.id
+
+    assert fav2.id == fav1.id
+
+    assert db.query(Favorite).count() == 1
 
 
 # Devuelve la lista de favoritos para un usuario
