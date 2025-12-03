@@ -4,7 +4,7 @@ import pytest
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
-from sqlalchemy import create_engine
+from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from collections.abc import Iterator
 
@@ -27,6 +27,7 @@ engine = create_engine(
     os.environ["DATABASE_URL"],
     connect_args={"check_same_thread": False},
     future=True,
+    poolclass=StaticPool,
 )
 TestingSessionLocal = sessionmaker(
     bind=engine, autoflush=False, autocommit=False, future=True
@@ -88,6 +89,24 @@ def buyer_user(db: Session) -> User:
         email="buyer@example.com",
         password_hash=hash_password("secret"),
         role=UserRole.buyer,
+        is_active=True,
+    )
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    return u
+
+
+@pytest.fixture()
+def admin_user(db: Session) -> User:
+    existing = db.query(User).filter_by(email="admin@example.com").first()
+    if existing:
+        return existing
+
+    u = User(
+        email="admin@example.com",
+        password_hash=hash_password("secret"),
+        role=UserRole.admin,
         is_active=True,
     )
     db.add(u)

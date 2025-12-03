@@ -68,17 +68,13 @@ def add_favorite(
 def remove_favorite(
     listing_id: int,
     db: Session = Depends(get_db),
-    # user: User = Depends(require_role("buyer")),
     user: User = Depends(get_current_user),
 ):
-    fav = (
-        db.query(Favorite)
-        .filter(Favorite.customer_id == user.id, Favorite.listing_id == listing_id)
-        .first()
-    )
-    if not fav:
-        # idempotente: no hay favorito; 204 igual
-        return None
-    db.delete(fav)
-    db.commit()
+    """
+    Elimina un favorito del usuario logueado para el listing dado.
+    Es idempotente: si el favorito no existía, devuelve 204 igual.
+    """
+    # svc_remove_favorite devuelve True si eliminó algo, False si no existía,
+    # pero a nivel API mantenemos siempre 204 (idempotente).
+    svc_remove_favorite(db, user.id, listing_id)
     return None

@@ -1,9 +1,7 @@
 from __future__ import annotations
-from typing import Sequence, List, Dict, Any, Tuple, Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.engine import Row
-
 from app.models.favorite import Favorite
 from app.models.listing import Listing
 from app.models.user import User
@@ -46,17 +44,6 @@ def remove_favorite(db: Session, user_id: int, listing_id: int) -> bool:
         return False
     db.delete(fav)
     db.commit()
-    return True
-
-
-def toggle_favorite(db: Session, user_id: int, listing_id: int) -> bool:
-    """Devuelve el estado final: True si quedó favorito, False si se quitó."""
-    fav = get_favorite(db, user_id, listing_id)
-    if fav:
-        db.delete(fav)
-        db.commit()
-        return False
-    add_favorite(db, user_id, listing_id)
     return True
 
 
