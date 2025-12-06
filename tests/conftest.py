@@ -1,6 +1,7 @@
 import os, sys
 import pytest
 
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
@@ -21,6 +22,7 @@ from app.models.user import User, UserRole
 from app.models.agency import Agency
 from app.models.listing import Listing
 from app.models.car_model import CarModel
+from app.models.inventory import Inventory
 from app.core.security import hash_password
 
 engine = create_engine(
@@ -180,3 +182,47 @@ def sample_listing(db: Session, agency: Agency) -> Listing:
     db.commit()
     db.refresh(l)
     return l
+
+
+@pytest.fixture()
+def second_buyer_user(db: Session) -> User:
+
+    existing = db.query(User).filter_by(email="buyer2@example.com").first()
+    if existing:
+        return existing
+    u = User(
+        email="buyer2@example.com",
+        password_hash=hash_password("secret"),
+        role=UserRole.buyer,
+        is_active=True,
+    )
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    return u
+
+
+@pytest.fixture()
+def fiat_cronos_inventory(
+    db: Session,
+    agency: Agency,
+    fiat_cronos_carmodel: CarModel,
+) -> Inventory:
+
+    existing = (
+        db.query(Inventory)
+        .filter_by(agency_id=agency.id, car_model_id=fiat_cronos_carmodel.id)
+        .first()
+    )
+    if existing:
+        return existing
+
+    inv = Inventory(
+        agency_id=agency.id,
+        car_model_id=fiat_cronos_carmodel.id,
+        quantity=10,
+    )
+    db.add(inv)
+    db.commit()
+    db.refresh(inv)
+    return inv
