@@ -1,6 +1,6 @@
 # app/models/purchase.py
 from decimal import Decimal
-from sqlalchemy import Integer, DateTime, ForeignKey, Numeric, String, func, Enum
+from sqlalchemy import Integer, DateTime, ForeignKey, Numeric, String, text, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from enum import Enum as PyEnum
@@ -43,7 +43,7 @@ class Purchase(Base):
 
     created_at: Mapped["DateTime"] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=text("CURRENT_TIMESTAMP"),
     )
 
     buyer = relationship("User", back_populates="purchases")

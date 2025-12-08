@@ -9,7 +9,7 @@ from sqlalchemy import (
     Numeric,
     ForeignKey,
     Index,
-    func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
@@ -43,7 +43,7 @@ class Listing(Base):
     seller_notes: Mapped[str | None] = mapped_column(Text())
     expires_on: Mapped["DateTime | None"] = mapped_column(DateTime(timezone=True))
     created_at: Mapped["DateTime"] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP")
     )
 
     is_active: Mapped[bool] = mapped_column(

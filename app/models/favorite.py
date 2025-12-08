@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy import Integer, DateTime, ForeignKey, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
@@ -14,7 +14,7 @@ class Favorite(Base):
         ForeignKey("listings.id", ondelete="CASCADE"), index=True
     )
     created_at: Mapped["DateTime"] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP")
     )
 
     customer = relationship("User", back_populates="favorites")
