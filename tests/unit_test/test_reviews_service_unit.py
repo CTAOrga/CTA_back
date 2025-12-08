@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-
 from app.models.user import User
 from app.models.agency import Agency
 from app.models.car_model import CarModel
