@@ -1,4 +1,5 @@
 {
+
   "annotations": {
     "list": [
       {
@@ -18,13 +19,12 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
   "links": [],
   "panels": [
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff5qrnyp28u0wa"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -90,7 +90,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff5qrnyp28u0wa"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -355,7 +355,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff5qrnyp28u0wa"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -570,7 +570,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff5qrnyp28u0wa"
+        "uid": "PBFA97CFB590B2093"
       },
       "description": "",
       "fieldConfig": {
@@ -680,7 +680,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff5qrnyp28u0wa"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -924,8 +924,9 @@
             "type": "loki",
             "uid": "P8E80F9AEF21F6940"
           },
+          "direction": "backward",
           "editorMode": "code",
-          "expr": "{job=\"fastapi-docker-logs\", service_name=\"backend\"}",
+          "expr": "{job=\"cta-docker-logs\"}",
           "hide": false,
           "queryType": "range",
           "refId": "A"
@@ -950,7 +951,7 @@
     "refresh_intervals": []
   },
   "timezone": "",
-  "title": "Dashboard2 Copy",
-  "uid": "adfnkfx",
-  "version": 1
+  "title": "Metricas basicas de CTA",
+  "uid": "adr5xdh",
+  "version": 7
 }
