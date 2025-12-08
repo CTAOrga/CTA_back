@@ -27,7 +27,6 @@ async def lifespan(app: FastAPI):
         print(f"[DB] Error creando tablas: {e}")
         raise
     try:
-        instrumentator.expose(app)
         logging.info("Startup complete. Metrics exposed.")
         yield
     finally:
@@ -46,7 +45,7 @@ app.add_middleware(
 )
 
 instrumentator = Instrumentator().instrument(app)
-
+instrumentator.expose(app)
 
 @app.get("/health")
 def health():
