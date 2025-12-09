@@ -8,8 +8,7 @@
 Backend base con **FastAPI**, CORS listo para React y configuración por `.env`.
 No se fuerza la conexión a la base (podés arrancar sin DB y sumarla después). Ya incluye ejemplo con **MySQL**.
 
-[![codecov](https://codecov.io/gh/CTAOrga/CTA_back/graph/badge.svg?token=49BT5FMQ9B)](https://codecov.io/gh/CTAOrga/CTA_back)
----
+## [![codecov](https://codecov.io/gh/CTAOrga/CTA_back/graph/badge.svg?token=49BT5FMQ9B)](https://codecov.io/gh/CTAOrga/CTA_back)
 
 ## FastAPi sin docker
 
@@ -181,6 +180,78 @@ mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS appdb DEFAULT CHARACTER SET u
 > Si tu server es 5.7, usá `utf8mb4_unicode_ci`.
 
 ---
+
+### 💾 Base de datos de pruebas (cta_perf) para tests de performance (k6)
+
+Esta base se usa **exclusivamente** para los tests de carga/stress (por ejemplo `stress-purchases.js` en el front).  
+La idea es **no ensuciar la base de demo** y tener una DB que podamos romper y reseedear todas las veces que haga falta.
+
+#### 1) Crear la base `cta_perf` (una sola vez)
+
+**Windows (PowerShell):**
+
+```powershell
+$SQL = @'
+CREATE DATABASE IF NOT EXISTS cta_perf
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_0900_ai_ci;
+
+GRANT ALL PRIVILEGES ON cta_perf.* TO 'appuser'@'localhost';
+FLUSH PRIVILEGES;
+'@
+mysql -u root -p -e $SQL
+```
+
+**Linux:**
+
+```bash
+mysql -u root -p -e "
+  CREATE DATABASE IF NOT EXISTS cta_perf
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_0900_ai_ci;
+  GRANT ALL PRIVILEGES ON cta_perf.* TO 'appuser'@'localhost';
+  FLUSH PRIVILEGES;
+"
+```
+
+> Se reutiliza el mismo usuario `appuser` / `AppPass!123` que para `appdb`.
+
+#### 2) Levantar la API apuntando a `cta_perf` (local)
+
+```powershell
+cd cta_back
+.\.venv\Scripts\Activate.ps1
+
+# 1) Apuntar la app a la DB de pruebas (cta_perf)
+$env:DATABASE_URL = "mysql+pymysql://appuser:AppPass!123@localhost:3306/cta_perf"
+
+# 2) Ejecutar el seed mínimo de performance
+python -m app.scripts.seed_perf
+
+# 3) Levantar la API
+uvicorn app.main:app --reload
+# → http://127.0.0.1:8000/docs
+```
+
+> 💡 El script `seed_perf` crea datos mínimos para perf, por ejemplo:  
+> usuarios `agency_perf@cta.com`, `buyer_perf@cta.com` y car models base para los tests de k6.
+
+#### 3) GitFlow / CI/CD
+
+En GitFlow, **no se pisa a mano `DATABASE_URL`**:
+
+- En el pipeline “normal” (dev/demo) la URL se configura con la base habitual (ej: `appdb`).
+- En el pipeline de **performance** se configura una URL separada que apunta a `cta_perf`, por ejemplo:
+
+```text
+DATABASE_URL = mysql+pymysql://appuser:AppPass!123@host-perf:3306/cta_perf
+```
+
+> En otras palabras:
+>
+> - **Dev/Demo** → `DATABASE_URL` → `appdb`
+> - **Perf** → `DATABASE_URL` → `cta_perf`  
+>   y los tests de k6 de compras (`stress-purchases.js`) deben ejecutarse **solo contra esta última**.
 
 ## 🔐 Autenticación (JWT) y Roles
 
