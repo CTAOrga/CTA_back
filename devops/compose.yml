@@ -1,4 +1,7 @@
 services:
+  # ==============================
+  # Backend "normal" (BD demo)
+  # ==============================
   backend:
     build:
       context: ../
@@ -26,6 +29,9 @@ services:
       - backend
     restart: unless-stopped
 
+  # ==============================
+  # MySQL "normal"
+  # ==============================
   mysql:
     image: mysql:8.0.19
     container_name: mysql-container
@@ -101,8 +107,80 @@ services:
     networks:
       - cta_back_network
 
+  # ==============================
+  # Backend PERF (BD de performance)
+  # ==============================
+  backend_perf:
+    build:
+      context: ../
+      dockerfile: devops/Dockerfile
+    container_name: cta_backend_perf
+    ports:
+      - "8001:8000"
+    env_file:
+      - ./.env.compose
+    environment:
+      # ...pero pisamos solo la URL de BD para que vaya a mysql_perf
+      - DATABASE_URL=mysql+pymysql://appuser:AppPass!123@mysql_perf:3306/cta_perf
+    networks:
+      - cta_back_network
+    depends_on:
+      - mysql_perf
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ==============================
+  # MySQL PERF
+  # ==============================
+  mysql_perf:
+    image: mysql:8.0.19
+    container_name: mysql-perf
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cta_perf
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: "AppPass!123"
+    # el mapeo al host es opcional; si querés debug desde host:
+    ports:
+      - "3308:3306"
+    networks:
+      - cta_back_network
+    volumes:
+      - mysql-perf-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -proot --silent"]
+      interval: 5s
+      retries: 30
+      start_period: 20s
+      timeout: 3s
+
+  # ==============================
+  # k6
+  # ==============================
+  k6:
+    image: grafana/k6:latest
+    container_name: k6-runner
+    networks:
+      - cta_back_network
+    volumes:
+      - ../k6:/k6
+    environment:
+      - API_BASE_URL=http://cta_backend:8000/api/v1
+      - API_BASE_URL_PERF=http://cta_backend_perf:8000/api/v1
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      # opcionales, si querés configurar vía env:
+      - AGENCY_EMAIL=agency_perf@cta.com
+      - AGENCY_PASSWORD=Perf1234!
+      - BUYER_EMAIL=buyer_perf@cta.com
+      - BUYER_PASSWORD=Perf1234!
+    profiles:
+      - "k6" # para que no arranque siempre si no querés
+
 volumes:
   mysql-data:
+  mysql-perf-data:
 
 networks:
   cta_back_network:

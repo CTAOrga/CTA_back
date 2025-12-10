@@ -1,0 +1,103 @@
+name: k6 Backend Load Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop, k6-fix]
+  pull_request:
+    branches: [main, develop, k6-fix]
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+
+    # Estos se usan en el compose (k6.environment)
+    env:
+      API_BASE_URL: http://cta_backend:8000/api/v1
+      API_BASE_URL_PERF: http://cta_backend_perf:8000/api/v1
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      # agency/buyer los podés dejar fijos o también como secrets si querés
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Docker versions
+        run: |
+          docker --version
+          docker compose version
+
+      # Build de las imágenes de backend
+      - name: Build backend images
+        run: docker compose -f devops/compose.yml build backend backend_perf
+
+      # Levantamos las 2 BDs
+      - name: Start databases
+        run: docker compose -f devops/compose.yml up -d mysql mysql_perf
+
+      # Esperamos un poco por si están lentas en levantar
+      - name: Wait for MySQL containers
+        run: |
+          echo "Esperando que MySQL y MySQL PERF estén saludables..."
+          sleep 35
+          docker compose -f devops/compose.yml ps
+
+      # Seed de la BD PERF con app/scripts/seed_perf.py
+      - name: Seed PERF database
+        run: |
+          docker compose -f devops/compose.yml run --rm \
+            backend_perf python -m app.scripts.seed_perf
+
+      # Ahora sí, levantamos los 2 backends
+      - name: Start backends
+        run: docker compose -f devops/compose.yml up -d backend backend_perf
+
+      # ================
+      # Tests de k6
+      # ================
+
+      - name: k6 - spyke listings (BD normal)
+        run: |
+          docker compose -f devops/compose.yml run --rm \
+            k6 run /k6/spyke-listings.js \
+              --summary-export=summary-spyke.json
+
+      - name: k6 - stress listings (BD normal)
+        run: |
+          docker compose -f devops/compose.yml run --rm \
+            k6 run /k6/stress-listings.js \
+              --summary-export=summary-stress-listings.json
+
+      - name: k6 - stress admin reports (BD normal + ADMIN_TOKEN)
+        run: |
+          docker compose -f devops/compose.yml run --rm \
+            k6 run /k6/stress-admin-reports.js \
+              --summary-export=summary-stress-admin-reports.json
+
+      - name: k6 - stress purchases (BD PERF + AGENCY/BUYER TOKEN)
+        run: |
+          docker compose -f devops/compose.yml run --rm \
+            k6 run /k6/stress-purchases.js \
+              --summary-export=summary-stress-purchases.json
+
+      # Subimos todos los summary de k6
+      - name: Upload k6 summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-backend-summaries
+          path: |
+            summary-*.json
+
+      # Logs útiles si algo explota
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          docker compose -f devops/compose.yml ps
+          docker compose -f devops/compose.yml logs backend backend_perf
+
+      # Limpieza final
+      - name: Tear down
+        if: always()
+        run: docker compose -f devops/compose.yml down -v
