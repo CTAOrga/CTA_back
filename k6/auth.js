@@ -13,7 +13,7 @@ export function login({ baseUrl, email, password }) {
 
   // --- Variante JSON (ajustar si usás otra) ---
   const payload = JSON.stringify({
-    username: email,
+    email: email,
     password: password,
   });
 
