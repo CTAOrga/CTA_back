@@ -35,7 +35,7 @@ services:
   mysql:
     image: mysql:8.0.19
     container_name: mysql-container
-    command: --default-authentication-plugin=mysql_native_password
+    command: --default-authentication-plugin=mysql_native_password --sql-mode=""
     environment:
       MYSQL_ROOT_PASSWORD: root # Contraseña para el usuario root
       MYSQL_DATABASE: appdb # Nombre de la base de datos a crear
@@ -83,7 +83,7 @@ services:
   mysql_perf:
     image: mysql:8.0.19
     container_name: mysql-perf
-    command: --default-authentication-plugin=mysql_native_password
+    command: --default-authentication-plugin=mysql_native_password --sql-mode=""
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: cta_perf
