@@ -19,7 +19,7 @@ jobs:
 
       - name: Levantar stack de Docker
         run: |
-          docker compose -f devops/docker-compose.yml up -d backend mysql
+          docker compose -f devops/compose.yml up -d backend mysql
 
       # 👇 Esperamos a que MySQL esté OK
       - name: Wait for MySQL
