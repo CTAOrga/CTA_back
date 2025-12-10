@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 .env
 .env.*
+!.env.compose   # <--- excepción, este SÍ se sube
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
