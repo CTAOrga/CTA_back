@@ -16,8 +16,8 @@ jobs:
       API_BASE_URL_PERF: http://localhost:8001/api/v1
 
       # Credenciales necesarias
-      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL_PERF }}
-      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD_PERF }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL_DEMO }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD_DEMO }}
       AGENCY_EMAIL: ${{ secrets.AGENCY_EMAIL_PERF }}
       AGENCY_PASSWORD: ${{ secrets.AGENCY_PASSWORD_PERF }}
       BUYER_EMAIL: ${{ secrets.BUYER_EMAIL_PERF }}
