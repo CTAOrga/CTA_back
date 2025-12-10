@@ -2,9 +2,9 @@ name: k6 backend tests
 
 on:
   push:
-    branches: [main, develop, k6-fix]
+    branches: [main, develop, k6-fix, k6-fix-2]
   pull_request:
-    branches: [main, develop, k6-fix]
+    branches: [main, develop, k6-fix, k6-fix-2]
 
 jobs:
   k6-perf:
