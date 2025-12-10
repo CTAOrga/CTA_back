@@ -28,7 +28,7 @@ jobs:
 
       - name: Levantar stack PERF (mysql_perf + backend_perf)
         run: |
-          docker compose -f devops/docker-compose.yml up -d mysql_perf backend_perf
+          docker compose -f devops/compose.yml up -d mysql_perf backend_perf
 
       - name: Esperar a que backend_perf responda
         run: |
@@ -42,7 +42,7 @@ jobs:
             sleep 5
           done
           echo "❌ backend_perf no levantó a tiempo, mostrando logs:"
-          docker compose -f devops/docker-compose.yml logs backend_perf
+          docker compose -f devops/compose.yml logs backend_perf
           exit 1
 
       - name: Set up k6
