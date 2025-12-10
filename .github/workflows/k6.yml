@@ -1,0 +1,64 @@
+name: k6 backend tests
+
+on:
+  push:
+    branches: [main, develop, k6-fix]
+  pull_request:
+    branches: [main, develop, k6-fix]
+
+jobs:
+  k6-perf:
+    runs-on: ubuntu-latest
+
+    env:
+      # 👉 apuntamos al backend_perf que expone 8001
+      API_BASE_URL: http://localhost:8001/api/v1
+
+      # si necesitás usuarios semilla para stress-purchases o admin-reports:
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL_PERF }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD_PERF }}
+      AGENCY_EMAIL: ${{ secrets.AGENCY_EMAIL_PERF }}
+      AGENCY_PASSWORD: ${{ secrets.AGENCY_PASSWORD_PERF }}
+      BUYER_EMAIL: ${{ secrets.BUYER_EMAIL_PERF }}
+      BUYER_PASSWORD: ${{ secrets.BUYER_PASSWORD_PERF }}
+
+    steps:
+      - name: Checkout back repo
+        uses: actions/checkout@v4
+
+      - name: Levantar stack PERF (mysql_perf + backend_perf)
+        run: |
+          docker compose -f devops/docker-compose.yml up -d mysql_perf backend_perf
+
+      - name: Esperar a que backend_perf responda
+        run: |
+          echo "Esperando a que backend_perf esté listo en http://localhost:8001..."
+          for i in {1..30}; do
+            if curl -sSf http://localhost:8001/docs >/dev/null 2>&1; then
+              echo "✅ backend_perf OK"
+              exit 0
+            fi
+            echo "⏳ Intento $i/30: backend_perf todavía no responde..."
+            sleep 5
+          done
+          echo "❌ backend_perf no levantó a tiempo, mostrando logs:"
+          docker compose -f devops/docker-compose.yml logs backend_perf
+          exit 1
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: k6 - load listings
+        run: k6 run --summary-export=summary-load-listings.json k6/load-listings.js
+
+      - name: k6 - spyke listings
+        run: k6 run --summary-export=summary-spyke-listings.json k6/spyke-listings.js
+
+      - name: k6 - stress listings
+        run: k6 run --summary-export=summary-stress-listings.json k6/stress-listings.js
+
+      - name: k6 - stress admin reports
+        run: k6 run --summary-export=summary-admin-reports.json k6/stress-admin-reports.js
+
+      - name: k6 - stress purchases
+        run: k6 run --summary-export=summary-stress-purchases.json k6/stress-purchases.js
