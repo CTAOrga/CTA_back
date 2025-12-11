@@ -44,6 +44,11 @@ jobs:
           sleep 25
           docker compose -f devops/compose.yml ps
 
+      - name: Seed DEMO DB (para k6)
+        run: |
+          docker compose -f devops/compose.yml run --rm \
+            backend python -m app.scripts.seed_demo_k6
+
       - name: Seed PERF DB
         run: |
           docker compose -f devops/compose.yml run --rm \
