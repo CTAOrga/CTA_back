@@ -1,4 +1,7 @@
 services:
+  # ==============================
+  # Backend "normal" (BD demo)
+  # ==============================
   backend:
     build:
       context: ../
@@ -26,10 +29,13 @@ services:
       - backend
     restart: unless-stopped
 
+  # ==============================
+  # MySQL "normal"
+  # ==============================
   mysql:
     image: mysql:8.0.19
     container_name: mysql-container
-    command: --default-authentication-plugin=mysql_native_password
+    command: --default-authentication-plugin=mysql_native_password --sql-mode=""
     environment:
       MYSQL_ROOT_PASSWORD: root # Contraseña para el usuario root
       MYSQL_DATABASE: appdb # Nombre de la base de datos a crear
@@ -100,9 +106,57 @@ services:
       - loki
     networks:
       - cta_back_network
+  # ==============================
+  # Backend PERF (BD de performance)
+  # ==============================
+  backend_perf:
+    build:
+      context: ../
+      dockerfile: devops/Dockerfile
+    container_name: cta_backend_perf
+    ports:
+      - "8001:8000"
+    env_file:
+      - ./.env.compose
+    environment:
+      # ...pero pisamos solo la URL de BD para que vaya a mysql_perf
+      - DATABASE_URL=mysql+pymysql://appuser:AppPass!123@mysql_perf:3306/cta_perf
+    networks:
+      - cta_back_network
+    depends_on:
+      - mysql_perf
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ==============================
+  # MySQL PERF
+  # ==============================
+  mysql_perf:
+    image: mysql:8.0.19
+    container_name: mysql-perf
+    command: --default-authentication-plugin=mysql_native_password --sql-mode=""
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cta_perf
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: "AppPass!123"
+    # el mapeo al host es opcional; si querés debug desde host:
+    ports:
+      - "3308:3306"
+    networks:
+      - cta_back_network
+    volumes:
+      - mysql-perf-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -proot --silent"]
+      interval: 5s
+      retries: 30
+      start_period: 20s
+      timeout: 3s
 
 volumes:
   mysql-data:
+  mysql-perf-data:
 
 networks:
   cta_back_network:

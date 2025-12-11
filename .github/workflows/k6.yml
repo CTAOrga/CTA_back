@@ -1,0 +1,122 @@
+name: k6 backend tests
+
+on:
+  push:
+    branches: [main, develop, k6-fix, k6-fix-2]
+  pull_request:
+    branches: [main, develop, k6-fix, k6-fix-2]
+
+jobs:
+  k6-perf:
+    runs-on: ubuntu-latest
+
+    env:
+      # URLs a los backends EXPUESTOS dentro del runner
+      API_BASE_URL_DEMO: http://localhost:8000/api/v1
+      API_BASE_URL_PERF: http://localhost:8001/api/v1
+
+      # Credenciales necesarias
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL_DEMO }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD_DEMO }}
+      AGENCY_EMAIL: ${{ secrets.AGENCY_EMAIL_PERF }}
+      AGENCY_PASSWORD: ${{ secrets.AGENCY_PASSWORD_PERF }}
+      BUYER_EMAIL: ${{ secrets.BUYER_EMAIL_PERF }}
+      BUYER_PASSWORD: ${{ secrets.BUYER_PASSWORD_PERF }}
+
+    steps:
+      - name: Checkout back repo
+        uses: actions/checkout@v4
+
+      - name: Mostrar versiones Docker
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Build de imágenes del backend
+        run: docker compose -f devops/compose.yml build backend backend_perf
+
+      - name: Levantar BDs
+        run: docker compose -f devops/compose.yml up -d mysql mysql_perf
+
+      - name: Esperar MySQL containers
+        run: |
+          echo "Esperando MySQL..."
+          sleep 25
+          docker compose -f devops/compose.yml ps
+
+      - name: Seed DEMO DB (para k6)
+        run: |
+          docker compose -f devops/compose.yml run --rm \
+            backend python -m app.scripts.seed_demo_k6
+
+      - name: Seed PERF DB
+        run: |
+          docker compose -f devops/compose.yml run --rm \
+            backend_perf python -m app.scripts.seed_perf
+
+      - name: Levantar backends
+        run: docker compose -f devops/compose.yml up -d backend backend_perf
+
+      - name: Esperar backend DEMO
+        run: |
+          echo "Esperando backend en http://localhost:8000..."
+          for i in {1..30}; do
+            curl -sf http://localhost:8000/api/v1/docs && break
+            echo "⏳ Intento $i/30: backend aún no responde..."
+            sleep 3
+          done
+
+      - name: Esperar backend PERF
+        run: |
+          echo "Esperando backend PERF en http://localhost:8001..."
+          for i in {1..30}; do
+            curl -sf http://localhost:8001/api/v1/docs && break
+            echo "⏳ Intento $i/30: backend_perf aún no responde..."
+            sleep 3
+          done
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+
+      # ====================== TESTS DEMO ======================
+      - name: k6 - load listings DEMO
+        run: |
+          API_BASE_URL=$API_BASE_URL_DEMO \
+          k6 run --summary-export=summary-load-listings-demo.json k6/load-listings.js
+
+      - name: k6 - spyke listings DEMO
+        run: |
+          API_BASE_URL=$API_BASE_URL_DEMO \
+          k6 run --summary-export=summary-spyke-listings-demo.json k6/spyke-listings.js
+
+      - name: k6 - stress listings DEMO
+        run: |
+          API_BASE_URL=$API_BASE_URL_DEMO \
+          k6 run --summary-export=summary-stress-listings-demo.json k6/stress-listings.js
+
+      - name: k6 - stress admin reports DEMO
+        run: |
+          API_BASE_URL=$API_BASE_URL_DEMO \
+          ADMIN_EMAIL=$ADMIN_EMAIL ADMIN_PASSWORD=$ADMIN_PASSWORD \
+          k6 run --summary-export=summary-stress-admin-reports-demo.json k6/stress-admin-reports.js
+
+      # ====================== TESTS PERF ======================
+      - name: k6 - stress purchases PERF
+        run: |
+          API_BASE_URL=$API_BASE_URL_PERF \
+          AGENCY_EMAIL=$AGENCY_EMAIL AGENCY_PASSWORD=$AGENCY_PASSWORD \
+          BUYER_EMAIL=$BUYER_EMAIL BUYER_PASSWORD=$BUYER_PASSWORD \
+          k6 run --summary-export=summary-stress-purchases-perf.json k6/stress-purchases.js
+
+      # ====================== Artefactos ======================
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-backend-summaries
+          path: summary-*.json
+
+      # ====================== Limpieza ======================
+      - name: Tear down containers
+        if: always()
+        run: docker compose -f devops/compose.yml down -v
