@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 
 class TopSoldCarOut(BaseModel):
@@ -29,5 +29,4 @@ class TopFavoriteCarOut(BaseModel):
     model: str
     favorites_count: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
